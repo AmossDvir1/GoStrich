@@ -65,7 +65,12 @@ export default function AuthScreen() {
           return;
         }
       }
-      setError("Sign-in failed. Please try again.");
+      const msg = isErrorWithCode(e)
+        ? `Sign-in failed (code: ${e.code})`
+        : e instanceof Error
+        ? `Sign-in failed: ${e.message}`
+        : "Sign-in failed. Please try again.";
+      setError(msg);
     } finally {
       setLoading(false);
     }
