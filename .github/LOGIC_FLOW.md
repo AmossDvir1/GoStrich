@@ -1,683 +1,298 @@
-# GoStrich - Logic Flow & System Architecture
+﻿# GoStrich - Logic Flow & System Architecture
 
-## System Overview Diagram
+## System Overview
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                      GOSTRICH APP SHELL                         │
-│  (Expo Router - Tabs with Stack Navigators)                     │
+│  (Expo Router v6 - File-based routing)                          │
 └──────────────────────┬──────────────────────────────────────────┘
                        │
-        ┌──────────────┼──────────────┐
-        │              │              │
-    ┌───▼────┐    ┌────▼────┐   ┌────▼────┐
-    │ HOME   │    │ HISTORY │   │SETTINGS │
-    │(Active)│    │(Archive)│   │  (Prefs)│
-    └───┬────┘    └────┬────┘   └────┬────┘
-        │              │              │
-        │         WatermelonDB        │
-        │         (Local Storage)     │
-        │              │              │
-        └──────────────┬──────────────┘
-                       │
-        ┌──────────────┴──────────────┐
-        │                             │
-    ┌───▼─────────────┐      ┌───────▼────┐
-    │  SERVICES       │      │   STORES   │
-    │  (Business      │      │  (Zustand) │
-    │   Logic)        │      └───────┬────┘
-    └───┬─────────────┘              │
-        │                            │
-    ┌───┴──────────────────────┐     │
-    │                          │     │
-┌───▼─────────┐   ┌──────────▼─┐    │
-│  GPS Svc    │   │ Tracking   │    │
-│             │   │  Engine    │    │
-│ • Perms     │   │            │    │
-│ • Tracking  │   │ • Start    │    │
-│ • Location  │   │ • Pause    │    │
-└─────────────┘   │ • Stop     │    │
-                  └──────┬─────┘    │
-                         │          │
-                  ┌──────▼─────────┐│
-                  │  Metrics       ││
-                  │  Calculator    ││
-                  │                ││
-                  │ • Distance     ││
-                  │ • Pace         ││
-                  │ • Duration     ││
-                  │ • Filtering    ││
-                  └────────┬───────┘│
-                           │        │
-                           └─────┬──┘
-                                 │
-                         ┌───────▼───────┐
-                         │   ZUSTAND     │
-                         │   STORES      │
-                         │               │
-                         │ • Tracking    │
-                         │ • App         │
-                         │ • Workouts    │
-                         └───────────────┘
+         ┌─────────────┴──────────────┐
+         │                            │
+    ┌────▼───────────────┐     ┌──────▼─────┐
+    │  AUTH GUARD        │     │   STORES   │
+    │  app/_layout.tsx   │     │  (Zustand) │
+    │                    │     │            │
+    │  !isLoggedIn →     │     │ authStore  │
+    │  Redirect /auth    │     │ profileStore│
+    └────┬───────────────┘     │ workoutStore│
+         │                     │ appStore   │
+         │ isLoggedIn          │ trackingStore│
+         │                     └──────┬─────┘
+    ┌────▼────────────────────────────┘
+    │
+    ├── /auth           → Google Sign-In screen
+    ├── /(tabs)/index   → Home/Run screen (main)
+    ├── /(tabs)/history → Sessions list
+    ├── /session/[id]   → Session summary
+    ├── /profile        → Profile modal
+    └── /modal          → Generic modal
 ```
 
 ---
 
-## Data Flow Diagram: Recording a Run
+## Screen → Store → Persistence Map
 
 ```
-USER STARTS RUN
+┌─────────────────────┬──────────────────┬──────────────────────┐
+│ Screen              │ Reads From       │ Writes To            │
+├─────────────────────┼──────────────────┼──────────────────────┤
+│ app/_layout.tsx     │ authStore        │ —                    │
+│ app/auth.tsx        │ authStore        │ authStore → SecureStore│
+│ (tabs)/index.tsx    │ trackingStore    │ workoutStore → AsyncStorage│
+│ (tabs)/history.tsx  │ workoutStore     │ workoutStore → AsyncStorage│
+│ session/[id].tsx    │ workoutStore     │ —                    │
+│ app/profile.tsx     │ profileStore     │ profileStore → SecureStore│
+│                     │ appStore         │ appStore (in-memory) │
+└─────────────────────┴──────────────────┴──────────────────────┘
+```
+
+---
+
+## Data Flow: Starting a Run
+
+```
+USER TAPS "START"
      │
      ▼
-┌──────────────────────────┐
-│ TrackingEngine.startRun()│
-│                          │
-│ • Request permissions    │
-│ • Initialize GPS watch   │
-│ • Set startTime          │
-│ • Clear GPS points array │
-└──────────┬───────────────┘
-           │
-           ▼
-    ┌──────────────────────────┐
-    │ expo-location starts     │
-    │ watching position        │
-    │                          │
-    │ Every 1s (or 5m):        │
-    │ receive new location     │
-    └──────────┬───────────────┘
-               │
-        ┌──────▼──────┐
-        │ NEW GPS     │
-        │ POINT       │
-        │ RECEIVED    │
-        └──────┬──────┘
-               │
-    ┌──────────▼─────────────┐
-    │ Validate GPS Point     │
-    │                        │
-    │ • Check accuracy       │
-    │ • Check speed          │
-    │ • Remove duplicates    │
-    │ • Filter outliers      │
-    └──────────┬─────────────┘
-               │
-        ┌──────▼──────┐
-        │ VALID?      │
-        └──────┬──────┘
-         /     \
-        /       \
-    (YES)      (NO)
-     │          │
-     ▼          └────────┐
-┌─────────────────────┐  │
-│ Add to array:       │  │
-│ trackingStore.      │  │
-│ addGpsPoint(point)  │  │
-└─────┬───────────────┘  │
-      │                  │
-      ▼                  │
-┌──────────────────────┐ │
-│ Calculate Metrics:   │ │
-│                      │ │
-│ • Distance (sum of   │ │
-│   consecutive        │ │
-│   segments)          │ │
-│ • Pace (distance /   │ │
-│   time)              │ │
-│ • Duration (elapsed) │ │
-└─────┬────────────────┘ │
-      │                  │
-      ▼                  │
-┌──────────────────────┐ │
-│ Update Zustand      │ │
-│ Store (trigger      │ │
-│ re-render)          │ │
-└─────┬────────────────┘ │
-      │                  │
-      ▼                  │
-┌──────────────────────┐ │
-│ MetricsDisplay       │ │
-│ Component re-renders │ │
-│ with new values      │ │
-└─────┬────────────────┘ │
-      │                  │
-      ▼                  │
-┌──────────────────────┐ │
-│ Update MapView       │ │
-│ (add point to        │ │
-│ polyline)            │ │
-└────────────────────  │ │
-      ▲                │ │
-      │                │ │
-      └────────────────┘ │
-                         │
-                         └─────────► (Discard point)
-                                    │
-                                    ▼
-                              (Loop continues)
+use-run-session.ts  handleStart()
+     │
+     ├── requestForegroundPermissionsAsync()
+     │        │
+     │   permission denied → alert & return
+     │        │
+     │   permission granted
+     │        │
+     ├── watchPositionAsync(GPS_OPTIONS)
+     │   GPS_OPTIONS = {
+     │     accuracy: BestForNavigation,
+     │     timeInterval: 1000,
+     │     distanceInterval: 2
+     │   }
+     │
+     ├── setInterval(() => elapsed++, 1000)
+     │
+     └── setState({ status: 'running', startTime: Date.now() })
+          │
+          ▼
+     RunDrawer renders (live elapsed + distance)
+     MapView renders (empty polyline initially)
+```
 
+---
 
-USER STOPS RUN
+## Data Flow: Each GPS Tick
+
+```
+watchPositionAsync callback fires
      │
      ▼
-┌──────────────────────────┐
-│ TrackingEngine.stopRun() │
-│                          │
-│ • Stop GPS watch         │
-│ • Calculate final stats  │
-│ • Create Workout object  │
-│ • Calculate total pace   │
-└──────────┬───────────────┘
-           │
-           ▼
-┌──────────────────────────┐
-│ WorkoutService.          │
-│ saveWorkout(workout)     │
-│                          │
-│ • Save to WatermelonDB   │
-│ • Save all GPS points    │
-│ • Set timestamps         │
-└──────────┬───────────────┘
-           │
-           ▼
-┌──────────────────────────┐
-│ Workout saved locally ✓  │
-│                          │
-│ Update stores:           │
-│ • Clear active run       │
-│ • Reload workout list    │
-│ • Show success message   │
-└──────────────────────────┘
-```
-
----
-
-## Component State Flow
-
-### MetricsDisplay Component
-
-```
-Props from Store:
-├── distance: number
-├── duration: number
-├── currentPace: number
-├── avgPace: number
-└── isRunning: boolean
-
-                │
-                ▼
-        ┌──────────────┐
-        │ useMemo()    │
-        │ recompute    │
-        │ only when    │
-        │ values       │
-        │ change       │
-        └──────┬───────┘
-               │
-      ┌────────┴────────┐
-      │                 │
-      ▼                 ▼
-  ┌──────────┐    ┌──────────┐
-  │ Format   │    │ Format   │
-  │ distance │    │ pace as  │
-  │ to "5.2  │    │ "5:42"   │
-  │ km"      │    │          │
-  └────┬─────┘    └────┬─────┘
-       │                │
-       ▼                ▼
-    ┌────────────────────────┐
-    │ Render to UI           │
-    │                        │
-    │ Distance: 5.2 km       │
-    │ Pace: 5:42 /km         │
-    │ Duration: 32:15        │
-    └────────────────────────┘
-```
-
----
-
-## GPS Data Processing Pipeline
-
-```
-Raw GPS Point (from device)
+new LocationObject { coords: { latitude, longitude, accuracy } }
      │
-     │ {lat: 37.7749, lon: -122.4194, accuracy: 8.5}
+     ├── push to routeCoords[]
+     │        │
+     │        ▼
+     │   Polyline on MapView re-renders (new segment drawn)
+     │
+     ├── if (prevCoord exists):
+     │        │
+     │        ▼
+     │   haversine(prevCoord, newCoord) → deltaKm
+     │        │
+     │        ▼
+     │   totalDistance += deltaKm
+     │
+     └── setState({ routeCoords, totalDistance })
+          │
+          ▼
+     RunDrawer re-renders (updated distance)
+```
+
+---
+
+## Haversine Formula (use-run-session.ts)
+
+```
+Given two GPS coordinates A and B:
+
+R = 6371 (Earth radius in km)
+dLat = (B.lat - A.lat) × π/180
+dLon = (B.lon - A.lon) × π/180
+
+x = sin²(dLat/2)
+  + cos(A.lat × π/180) × cos(B.lat × π/180) × sin²(dLon/2)
+
+distance = R × 2 × atan2(√x, √(1-x))   [km]
+```
+
+---
+
+## Data Flow: Stopping a Run
+
+```
+USER TAPS "STOP"
      │
      ▼
-┌─────────────────────────┐
-│ 1. ACCURACY CHECK       │
-│                         │
-│ if (accuracy > 100m) {  │
-│   reject               │
-│ }                       │
-└────────┬────────────────┘
-         │
-         ▼
-┌─────────────────────────┐
-│ 2. DUPLICATE CHECK      │
-│                         │
-│ if (same as last) {     │
-│   reject               │
-│ }                       │
-└────────┬────────────────┘
-         │
-         ▼
-┌─────────────────────────┐
-│ 3. SPEED CHECK          │
-│                         │
-│ distance = haversine()  │
-│ speed = distance/time   │
-│ if (speed > 50 km/h) {  │
-│   reject               │
-│ }                       │
-└────────┬────────────────┘
-         │
-         ▼
-┌─────────────────────────┐
-│ 4. VALID POINT ✓        │
-│                         │
-│ Add to array            │
-│ Trigger calculations    │
-└────────┬────────────────┘
-         │
-         ▼
-    [Point stored]
+use-run-session.ts  handleEnd()
+     │
+     ├── clearInterval(timer)
+     ├── watchPosition.remove()   (stops GPS)
+     │
+     ├── build Workout object:
+     │   {
+     │     id:          uuid(),
+     │     name:        "Run on Jan 15",
+     │     date:        ISO string,
+     │     distance:    totalDistance (km),
+     │     duration:    elapsed (seconds),
+     │     pace:        (elapsed/60) / totalDistance,
+     │     gpsPoints:   routeCoords[]
+     │   }
+     │
+     ├── workoutStore.addWorkout(workout)
+     │        │
+     │        ▼
+     │   workoutStore strips gpsPoints from stored WorkoutSummary
+     │        │
+     │        ▼
+     │   persist middleware → AsyncStorage.setItem('workouts', ...)
+     │
+     ├── setState({ status: 'idle', routeCoords: [], distance: 0 })
+     │
+     └── router.push('/session/' + workout.id)
+          │
+          ▼
+     Session summary screen renders (map replay + stats)
 ```
 
 ---
 
-## Distance Calculation Example
+## Store Architecture
 
 ```
-GPS Track (5 points):
-┌───────┬──────────┬──────────┬───────────┬──────────┐
-│ Pt 0  │   Pt 1   │   Pt 2   │   Pt 3    │   Pt 4   │
-│37.77, │ 37.774,  │ 37.778,  │ 37.782,   │ 37.785,  │
-│-122.4 │ -122.41  │ -122.42  │ -122.425  │ -122.43  │
-└───────┴──────────┴──────────┴───────────┴──────────┘
-                 │
-                 ▼ Haversine calculation between consecutive points
-                 │
-    Segment distances:
-    ├── Pt0→Pt1: 0.45 km
-    ├── Pt1→Pt2: 0.52 km
-    ├── Pt2→Pt3: 0.48 km
-    └── Pt3→Pt4: 0.43 km
-                 │
-                 ▼
-    Total Distance = 0.45 + 0.52 + 0.48 + 0.43
-                   = 1.88 km
-                 │
-                 ▼
-          [Final Distance]
+┌─────────────────────────────────────────────────────────────┐
+│                     ZUSTAND STORES                          │
+├──────────────┬──────────────────────────────┬───────────────┤
+│ Store        │ State                        │ Persistence   │
+├──────────────┼──────────────────────────────┼───────────────┤
+│ authStore    │ isLoggedIn: boolean           │ SecureStore   │
+│              │ user: GoogleUser | null       │ (encrypted)   │
+│              │ isHydrating: boolean          │               │
+├──────────────┼──────────────────────────────┼───────────────┤
+│ profileStore │ firstName: string             │ SecureStore   │
+│              │ lastName: string              │ (encrypted)   │
+│              │ photoUrl: string | null       │               │
+│              │ weightKg: number | null       │               │
+│              │ heightCm: number | null       │               │
+├──────────────┼──────────────────────────────┼───────────────┤
+│ workoutStore │ workouts: WorkoutSummary[]    │ AsyncStorage  │
+│              │                              │ (zustand      │
+│              │ addWorkout(w)                 │  persist)     │
+│              │ deleteWorkout(id)             │               │
+│              │ getWorkoutById(id)            │               │
+├──────────────┼──────────────────────────────┼───────────────┤
+│ appStore     │ unitSystem: 'metric'|'imperial'│ In-memory    │
+│              │ mapStyle: string              │ (resets on   │
+│              │ darkMode: boolean             │  app close)  │
+├──────────────┼──────────────────────────────┼───────────────┤
+│ trackingStore│ Active run state              │ In-memory    │
+│              │ (mirrors use-run-session)     │               │
+└──────────────┴──────────────────────────────┴───────────────┘
 ```
 
 ---
 
-## State Tree Structure
+## Auth Flow
 
 ```
-ZustandStore
+APP LAUNCHES
+     │
+     ▼
+app/_layout.tsx  (root layout)
+     │
+     ├── authStore.hydrate()    ← reads SecureStore
+     ├── profileStore.hydrate() ← reads SecureStore
+     │
+     ▼
+isHydrating === true → render nothing (prevents flash)
+     │
+isHydrating === false
+     │
+     ├── isLoggedIn === false → <Redirect href="/auth" />
+     │        │
+     │        ▼
+     │   auth.tsx  Google Sign-In button
+     │        │
+     │   user taps Sign In
+     │        │
+     │   GoogleSignin.signIn()
+     │        │
+     │   success → authStore.setLoggedIn(user)
+     │        │      → writes to SecureStore
+     │        │
+     │   <Redirect href="/(tabs)" />
+     │
+     └── isLoggedIn === true → render (tabs) layout
+```
+
+---
+
+## Session Summary Flow
+
+```
+handleEnd() calls router.push('/session/' + workoutId)
+     │
+     ▼
+app/session/[id].tsx
+     │
+     ├── const { id } = useLocalSearchParams()
+     ├── workoutStore.getWorkoutById(id)
+     │
+     │   NOTE: GPS points are stripped from WorkoutSummary.
+     │   The session detail screen uses the gpsPoints that were
+     │   passed through navigation params (or stored temporarily).
+     │
+     ├── MapView with Polyline (route replay)
+     └── Stats cards: distance, duration, pace, date
+```
+
+---
+
+## Component Tree
+
+```
+app/_layout.tsx  (Stack navigator + auth guard)
 │
-├── trackingStore (Active Run)
-│   ├── isRunning: false
-│   ├── isPaused: false
-│   ├── currentRun: {
-│   │   ├── gpsPoints: [...]
-│   │   ├── startTime: Date
-│   │   └── pausedDuration: 0
-│   │}
-│   ├── distance: 0
-│   ├── duration: 0
-│   ├── currentPace: 0
-│   ├── avgPace: 0
-│   ├── currentSpeed: 0
-│   └── actions: {
-│       ├── startRun()
-│       ├── pauseRun()
-│       ├── resumeRun()
-│       ├── stopRun()
-│       ├── addGpsPoint()
-│       └── discardRun()
-│       }
+├── app/auth.tsx
+│   └── Google Sign-In button
+│       └── GoogleSignin.signIn() → authStore
 │
-├── appStore (Global Settings)
-│   ├── unitSystem: 'metric'
-│   ├── mapStyle: 'standard'
-│   ├── autoStartNextRun: false
-│   ├── permissionsGranted: true
-│   ├── isLoading: false
-│   ├── error: null
-│   └── actions: {
-│       ├── updateSettings()
-│       ├── setError()
-│       └── clearError()
-│       }
+├── app/(tabs)/_layout.tsx  (Tab navigator)
+│   ├── app/(tabs)/index.tsx  [Run tab]
+│   │   ├── MapView + Polyline
+│   │   ├── RunDrawer (metrics HUD)
+│   │   │   └── elapsed, distance, pace display
+│   │   └── Start / Pause / Stop controls
+│   │       └── use-run-session hook
+│   │
+│   └── app/(tabs)/history.tsx  [Sessions tab]
+│       ├── FlatList of WorkoutSummary cards
+│       ├── Swipe-to-delete / delete button
+│       └── Tap → router.push('/session/' + id)
 │
-└── workoutStore (History)
-    ├── workouts: [{...}, {...}, ...]
-    ├── selectedWorkout: null
-    ├── isLoadingWorkouts: false
-    └── actions: {
-        ├── loadWorkouts()
-        ├── selectWorkout()
-        ├── deleteWorkout()
-        └── updateWorkout()
-        }
+├── app/session/[id].tsx  (Stack screen)
+│   ├── MapView (route replay)
+│   └── Stats grid (distance, pace, duration, date)
+│
+├── app/profile.tsx  (Modal screen)
+│   ├── expo-image (profile photo)
+│   ├── expo-image-picker (photo selection)
+│   ├── Editable fields (name, weight, height)
+│   ├── Unit toggle (metric / imperial)
+│   ├── Dark mode toggle
+│   └── Sign Out button → authStore.logout()
+│
+└── components/ui/runner-character.tsx
+    └── Rive ostrich animation (assets/ostrich.riv)
 ```
-
----
-
-## Database Schema Relationships
-
-```
-                    ┌─────────────────┐
-                    │    Workouts     │
-                    ├─────────────────┤
-                    │ id (PK)         │◄─────┐
-                    │ name            │      │ FK
-                    │ startTime       │      │
-                    │ endTime         │      │
-                    │ distanceKm      │      │
-                    │ durationSec     │      │
-                    │ avgPace         │      │
-                    │ createdAt       │      │
-                    └─────────────────┘      │
-                                            │
-                                            │
-                    ┌─────────────────┐     │
-                    │   GPS_Points    │     │
-                    ├─────────────────┤     │
-                    │ id (PK)         │     │
-                    │ workoutId ──────┼─────┘
-                    │ latitude        │
-                    │ longitude       │
-                    │ altitude        │
-                    │ accuracy        │
-                    │ timestamp       │
-                    └─────────────────┘
-
-
-One Workout : Many GPS_Points (1:N relationship)
-```
-
----
-
-## Permission Flow
-
-```
-App Starts
-     │
-     ▼
-┌──────────────────────┐
-│ Check if permission  │
-│ already granted      │
-└──────┬───────────────┘
-       │
-   /   |   \
-  /    |    \
- (Y)  (N)   (Never Asked)
- │    │         │
- ▼    ▼         ▼
-┌──────────────────────────────────────┐
-│ Show Permission Request Modal        │
-│                                      │
-│ "GoStrich needs location access      │
-│  to track your runs"                 │
-│                                      │
-│ [Allow]  [Don't Allow]               │
-└──┬──────────────────────┬────────────┘
-   │                      │
-   (ALLOW)            (DENY)
-   │                      │
-   ▼                      ▼
-┌──────────────────┐  ┌──────────────────┐
-│ Permission       │  │ Show error       │
-│ granted ✓        │  │                  │
-│                  │  │ "Location access │
-│ Enable tracking  │  │  is required"    │
-│ controls         │  │                  │
-└──────────────────┘  │ [Open Settings]  │
-                      │ [Cancel]         │
-                      └──────────────────┘
-```
-
----
-
-## Service Layer Communication
-
-```
-Component
-   │ useTracking() hook
-   │
-   ▼
-┌────────────────────┐
-│ Zustand Store      │
-│ (trackingStore)    │
-└────┬───────────────┘
-     │ dispatch action
-     │
-     ▼
-┌────────────────────────┐
-│ TrackingEngine         │
-│                        │
-│ • Manages lifecycle    │
-│ • Coordinates between  │
-│   GPS + Metrics        │
-└────┬─────────┬─────────┘
-     │         │
-     ▼         ▼
-┌──────────┐ ┌─────────────────┐
-│ GPS Svc  │ │ Metrics         │
-│          │ │ Calculator      │
-│ • Watch  │ │                 │
-│   position
-│ • Get    │ │ • Distance      │
-│   current│ │ • Pace          │
-│ • Perms  │ │ • Duration      │
-└──────────┘ └─────────────────┘
-     │               │
-     └───────┬───────┘
-             │ store updated
-             ▼
-          Component
-          re-renders
-```
-
----
-
-## Pause & Resume Logic
-
-```
-RUNNING STATE
-
-User Presses PAUSE
-     │
-     ▼
-┌──────────────────────┐
-│ trackingStore.       │
-│ pauseRun()           │
-│                      │
-│ • Set isPaused=true  │
-│ • Record pause start │
-│ • Stop GPS watch     │
-└──────┬───────────────┘
-       │
-       ▼
-  ┌─────────┐
-  │ PAUSED  │
-  │ STATE   │
-  └────┬────┘
-       │
-    [User can see stats but]
-    [no GPS updates happening]
-       │
-       ▼
-User Presses RESUME
-     │
-     ▼
-┌──────────────────────┐
-│ trackingStore.       │
-│ resumeRun()          │
-│                      │
-│ • Set isPaused=false │
-│ • Record pause end   │
-│ • Resume GPS watch   │
-│ • Add pause to array │
-└──────┬───────────────┘
-       │
-       ▼
-  ┌────────────┐
-  │ RUNNING    │
-  │ AGAIN      │
-  │            │
-  │ (GPS watch │
-  │  continues)│
-  └────────────┘
-
-When calculating moving time:
-movingTime = totalDuration - totalPausedDuration
-```
-
----
-
-## Error Handling Flow
-
-```
-Error Occurs
-     │
-     ▼
-┌──────────────────────────────┐
-│ Try-Catch Block              │
-│                              │
-│ catch (error: Error)         │
-└──────┬───────────────────────┘
-       │
-       ▼
-┌──────────────────────────────┐
-│ Log Error                    │
-│                              │
-│ logger.error(               │
-│   'GPS tracking failed',    │
-│   error                     │
-│ )                            │
-└──────┬───────────────────────┘
-       │
-       ▼
-┌──────────────────────────────┐
-│ Update appStore             │
-│                              │
-│ setError(                    │
-│   'Failed to start tracking' │
-│ )                            │
-└──────┬───────────────────────┘
-       │
-       ▼
-┌──────────────────────────────┐
-│ Display Error UI             │
-│                              │
-│ Component reads from store & │
-│ shows error message          │
-│                              │
-│ [Retry] [Dismiss]            │
-└──────┬───────────────────────┘
-       │
-   /   |   \
-  /    |    \
-(RETRY)(DISMISS)
-  │       │
-  ▼       ▼
-[retry]  [clear]
-operation error
-```
-
----
-
-## Polyline Rendering Pipeline
-
-```
-GPS Points Array
-[Pt0, Pt1, Pt2, ..., PtN]
-     │
-     │ Simplify polyline (remove unnecessary points)
-     │ using simplification algorithm
-     │
-     ▼
-Simplified Points
-[Pt0, Pt3, Pt6, ..., PtN]
-     │
-     │ Encode polyline (for efficient storage/transfer)
-     │ Google Polyline Algorithm = "ofxxFxnmzV..."
-     │
-     ▼
-Encoded String
-"ofxxFxnmzV..."
-     │
-     │ Pass to MapView component
-     │
-     ▼
-┌──────────────────────────┐
-│ <MapView>               │
-│   <Polyline            │
-│     coordinates={...}  │
-│     strokeColor="red"  │
-│   />                   │
-│ </MapView>             │
-└──────────┬───────────────┘
-           │
-           ▼
-    Rendered on Map
-```
-
----
-
-## Quick Reference: Key Files & Their Roles
-
-```
-SERVICE LAYER (Business Logic)
-├── services/gps/locationService.ts ........... GPS + Permissions
-├── services/tracking/trackingEngine.ts ....... Start/Pause/Stop logic
-├── services/tracking/metricsCalculator.ts ... Distance/Pace math
-└── services/workout/workoutService.ts ....... Save/Load workouts
-
-STATE MANAGEMENT (Zustand)
-├── stores/trackingStore.ts ................... Active run state
-├── stores/appStore.ts ....................... Global app state
-└── stores/workoutStore.ts ................... Workout history state
-
-CUSTOM HOOKS (Bridge between UI & Logic)
-├── hooks/useTracking.ts ..................... Main tracking hook
-├── hooks/useGpsTracking.ts .................. Raw GPS hook
-├── hooks/useWorkoutHistory.ts ............... Load workouts
-├── hooks/useLocationPermissions.ts .......... Permission management
-└── hooks/useMetrics.ts ...................... Real-time metrics
-
-COMPONENTS (UI Layer)
-├── components/tracking/MapView.tsx ......... Live map
-├── components/tracking/MetricsDisplay.tsx . Live stats
-├── components/tracking/TrackingControls.tsx  Start/Pause/Stop buttons
-├── components/history/WorkoutCard.tsx ...... Workout list item
-└── components/common/PermissionModal.tsx .. Permission request
-
-DATABASE (Data Persistence)
-├── database/schema.ts ....................... WatermelonDB schema
-├── database/models/Workout.ts .............. Workout model
-└── database/models/GpsPoint.ts ............. GPS point model
-```
-
----
-
-## Configuration Files Reference
-
-```
-app.json ..................... Expo app config
-tsconfig.json ................ TypeScript settings
-package.json ................. Dependencies + scripts
-.env ......................... API keys & secrets
-tailwind.config.js ........... Tailwind CSS config
-```
-
----
-
-**End of Logic Flow Document**

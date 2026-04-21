@@ -1,5 +1,16 @@
 # AI Agent Project Brief: GoStrich
 
+> **STATUS (Updated):** Core app is fully implemented. All sections 3A–3D below are live.
+> Key deviations from the original brief:
+> - **Storage**: Used Zustand + AsyncStorage (not WatermelonDB/SQLite) — simpler, sufficient
+> - **Auth**: Added Google Sign-In + SecureStore (not in original brief)
+> - **Foreground-only GPS**: Background tracking not yet implemented
+> - **Mascot**: Added Rive ostrich animation (`assets/ostrich.riv`)
+>
+> See [TECHNICAL_PLAN.md](TECHNICAL_PLAN.md) and [QUICK_REFERENCE.md](QUICK_REFERENCE.md) for the current architecture.
+
+---
+
 ## Context & Role
 
 You are an expert React Native and mobile app architect. I want you to build a running tracking application from scratch.

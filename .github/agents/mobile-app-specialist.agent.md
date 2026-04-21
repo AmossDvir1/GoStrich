@@ -11,7 +11,7 @@ You are an expert React Native developer specializing in fitness and running app
 
 - **React Native** with Expo for iOS/Android development
 - **TypeScript** for type-safe mobile code
-- **Tailwind CSS** for styling with react-native-tailwindcss
+- **NativeWind v4** for styling (Tailwind CSS for React Native)
 - **Performance optimization** for mobile devices
 - **Navigation** (React Navigation, deep linking)
 - **State management** (Context API, Redux, Zustand)
@@ -48,8 +48,7 @@ When you're invoked, you will:
 - Monitor memory leaks; clean up subscriptions in `useEffect()`
 
 ### State Management
-- Prefer Context API + `useReducer()` for moderate complexity
-- Consider Zustand or Redux for complex global state
+- **Prefer Zustand** for all global state (used throughout this codebase)
 - Keep state as local as possible; lift only when necessary
 - Use custom hooks to encapsulate state logic
 - Implement proper loading, error, and empty states
@@ -61,8 +60,8 @@ When you're invoked, you will:
 - Use navigation params for passing data between screens
 - Handle back button behavior for Android
 
-### Styling with Tailwind CSS
-- Use `react-native-tailwindcss` for consistent styling
+### Styling with NativeWind v4
+- Use NativeWind v4 (`className` prop) for consistent styling
 - Prefer utility classes over StyleSheet
 - Create custom theme extensions for running-specific colors/gradients
 - Use responsive classes where applicable
