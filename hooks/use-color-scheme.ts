@@ -14,8 +14,3 @@ export function useColorScheme(): ColorScheme {
   return system === "dark" ? "dark" : "light";
 }
 
-/**
- * Returns the active theme colors object for the current scheme.
- */
-export { useThemeColor } from "@/hooks/use-theme-color";
-

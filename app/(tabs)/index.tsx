@@ -6,7 +6,7 @@ import { useRunSession } from "@/hooks/use-run-session";
 import { useProfileStore } from "@/stores/profileStore";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import React from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Linking,
@@ -16,7 +16,15 @@ import {
   View,
 } from "react-native";
 import MapView, { Polyline, PROVIDER_DEFAULT } from "react-native-maps";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { formatPace } from "@/utils/formatting";
 
 const PILL_SHADOW = {
   shadowColor: "#000",
@@ -33,6 +41,9 @@ const DRAWER_SHADOW = {
   shadowOffset: { width: 0, height: -8 },
   elevation: 12,
 } as const;
+
+const DRAWER_EXTRA_HEIGHT = 96;
+const SNAP_SPRING = { damping: 50, stiffness: 300, overshootClamping: true } as const;
 
 export default function HomeScreen() {
   const scheme = useColorScheme();
@@ -51,6 +62,51 @@ export default function HomeScreen() {
     useRunSession(locationName);
 
   const isRunning = runState === "running";
+
+  const insets = useSafeAreaInsets();
+  const [isExpanded, setIsExpanded] = useState(false);
+  const drawerExpansion = useSharedValue(0);
+  const dragStart = useSharedValue(0);
+
+  const expandStyle = useAnimatedStyle(() => ({
+    height: drawerExpansion.value,
+    overflow: "hidden",
+  }));
+
+  const paceSecsPerKm = distanceKm > 0 ? elapsed / distanceKm : 0;
+  const caloriesKcal = Math.round(
+    distanceKm * (profile.weightKg ?? 70) * 1.036,
+  );
+
+  const toggleExpanded = useCallback(() => {
+    const toExpand = drawerExpansion.value < DRAWER_EXTRA_HEIGHT / 2;
+    const target = toExpand ? DRAWER_EXTRA_HEIGHT : 0;
+    drawerExpansion.value = withSpring(target, SNAP_SPRING);
+    setIsExpanded(toExpand);
+  }, [drawerExpansion]);
+
+  const panGesture = useMemo(
+    () =>
+      Gesture.Pan()
+        .activeOffsetY([-8, 8])
+        .onBegin(() => {
+          dragStart.value = drawerExpansion.value;
+        })
+        .onUpdate((e) => {
+          drawerExpansion.value = Math.max(
+            0,
+            Math.min(DRAWER_EXTRA_HEIGHT, dragStart.value - e.translationY),
+          );
+        })
+        .onEnd((e) => {
+          const shouldExpand =
+            drawerExpansion.value > DRAWER_EXTRA_HEIGHT / 2 || e.velocityY < -200;
+          const target = shouldExpand ? DRAWER_EXTRA_HEIGHT : 0;
+          drawerExpansion.value = withSpring(target, SNAP_SPRING);
+          runOnJS(setIsExpanded)(shouldExpand);
+        }),
+    [drawerExpansion, dragStart],
+  );
 
   const gpsDotColor =
     permissionStatus === "granted" && currentLocation
@@ -75,7 +131,7 @@ export default function HomeScreen() {
     "?";
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: c.background }}>
+    <SafeAreaView className="flex-1" edges={["top"]} style={{ backgroundColor: c.background }}>
       {/* Top bar */}
       <View className="flex-row justify-between px-5 pt-2 pb-1">
         <Pressable
@@ -172,25 +228,106 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Bottom drawer */}
-      <View
-        className="rounded-t-[28px] pb-8"
-        style={[{ backgroundColor: c.surface }, DRAWER_SHADOW]}
-      >
-        <View className="self-center w-10 h-1 rounded mt-3 mb-1" style={{ backgroundColor: c.border }} />
-        <View className="px-7 pt-2 pb-1">
-          <RunDrawer
-            runState={runState}
-            elapsed={elapsed}
-            distanceKm={distanceKm}
-            locationName={locationName}
-            onStart={() => void handleStart()}
-            onPause={handlePause}
-            onResume={() => void handleResume()}
-            onEnd={handleEnd}
-          />
+      {/* Bottom drawer — GestureDetector wraps the whole card so the user can drag from anywhere */}
+      <GestureDetector gesture={panGesture}>
+        <View
+          className="rounded-t-[28px]"
+          style={[
+            {
+              backgroundColor: c.surface,
+              paddingBottom: Math.max(insets.bottom, 20),
+            },
+            DRAWER_SHADOW,
+          ]}
+        >
+          {/* Handle pill — Pressable handles tap; pan is caught by the outer GestureDetector */}
+          <Pressable
+            onPress={toggleExpanded}
+            style={{
+              alignSelf: "center",
+              paddingVertical: 10,
+              paddingHorizontal: 32,
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={isExpanded ? "Collapse stats" : "Expand stats"}
+            accessibilityState={{ expanded: isExpanded }}
+          >
+            <View
+              style={{
+                width: 40,
+                height: 4,
+                borderRadius: 2,
+                backgroundColor: isExpanded ? c.primary : c.border,
+              }}
+            />
+          </Pressable>
+
+          {/* Run controls */}
+          <View className="px-7 pt-2 pb-1">
+            <RunDrawer
+              runState={runState}
+              elapsed={elapsed}
+              distanceKm={distanceKm}
+              locationName={locationName}
+              onStart={() => void handleStart()}
+              onPause={handlePause}
+              onResume={() => void handleResume()}
+              onEnd={handleEnd}
+            />
+          </View>
+
+          {/* Stats panel — slides in below controls when card is dragged up */}
+          <Animated.View style={expandStyle}>
+            <View
+              style={{
+                marginHorizontal: 28,
+                paddingTop: 12,
+                paddingBottom: 14,
+                borderTopWidth: 1,
+                borderTopColor: c.border,
+                flexDirection: "row",
+                alignItems: "center",
+              }}
+            >
+              <View style={{ flex: 1, alignItems: "center" }}>
+                <Text
+                  style={{ fontSize: 22, fontWeight: "800", color: c.textPrimary }}
+                >
+                  {paceSecsPerKm > 0 ? formatPace(paceSecsPerKm) : "--"}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 11,
+                    fontWeight: "600",
+                    marginTop: 2,
+                    color: c.textSecondary,
+                  }}
+                >
+                  Avg Pace
+                </Text>
+              </View>
+              <View style={{ width: 1, height: 40, backgroundColor: c.border }} />
+              <View style={{ flex: 1, alignItems: "center" }}>
+                <Text
+                  style={{ fontSize: 22, fontWeight: "800", color: c.textPrimary }}
+                >
+                  {caloriesKcal > 0 ? String(caloriesKcal) : "--"}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 11,
+                    fontWeight: "600",
+                    marginTop: 2,
+                    color: c.textSecondary,
+                  }}
+                >
+                  kcal
+                </Text>
+              </View>
+            </View>
+          </Animated.View>
         </View>
-      </View>
+      </GestureDetector>
     </SafeAreaView>
   );
 }

@@ -3,10 +3,10 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuthStore } from "@/stores/authStore";
 import { useProfileStore } from "@/stores/profileStore";
 import {
-    GoogleSignin,
-    GoogleSigninButton,
-    isErrorWithCode,
-    statusCodes,
+  GoogleSignin,
+  GoogleSigninButton,
+  isErrorWithCode,
+  statusCodes,
 } from "@react-native-google-signin/google-signin";
 import { router } from "expo-router";
 import React, { useState } from "react";
@@ -68,8 +68,8 @@ export default function AuthScreen() {
       const msg = isErrorWithCode(e)
         ? `Sign-in failed (code: ${e.code})`
         : e instanceof Error
-        ? `Sign-in failed: ${e.message}`
-        : "Sign-in failed. Please try again.";
+          ? `Sign-in failed: ${e.message}`
+          : "Sign-in failed. Please try again.";
       setError(msg);
     } finally {
       setLoading(false);

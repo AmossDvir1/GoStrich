@@ -3,14 +3,32 @@ import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { RunState } from "@/hooks/use-run-session";
 import { formatDuration } from "@/utils/formatting";
-import React from "react";
-import { Pressable, Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useCallback, useEffect, useRef } from "react";
+import { LayoutChangeEvent, Pressable, Text, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, {
+  cancelAnimation,
+  Easing,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 
-const OSTRICH_D = 80;
-const OSTRICH_OVERLAP = 28;
-const BTN_HEIGHT = 60;
+// ─── constants ────────────────────────────────────────────────────────────────
+const THUMB_SIZE = 80;
+const TRACK_HEIGHT = 60;
+const TRACK_TOP = (THUMB_SIZE - TRACK_HEIGHT) / 2; // vertical offset to center track
+const OSTRICH_OVERLAP = 28; // px the thumb visually overlaps the track edge
+const THUMB_PAD = THUMB_SIZE - OSTRICH_OVERLAP; // 52 — padding to center labels past thumb
+const END_BTN_WIDTH = 90;
+const SLIDE_THRESHOLD = 0.75; // fraction of max to trigger start
+const SPRING = { damping: 15, stiffness: 450, mass: 0.9 } as const;
 
-const OSTRICH_SHADOW = {
+const THUMB_SHADOW = {
   shadowColor: "#000",
   shadowOpacity: 0.15,
   shadowRadius: 8,
@@ -18,14 +36,42 @@ const OSTRICH_SHADOW = {
   elevation: 8,
 } as const;
 
-const ACTION_BTN_SHADOW = {
-  shadowColor: "#10B981",
-  shadowOpacity: 0.35,
-  shadowRadius: 12,
-  shadowOffset: { width: 0, height: 6 },
-  elevation: 6,
-} as const;
+// ─── shimmer ─────────────────────────────────────────────────────────────────
+function SlideShimmer() {
+  const translateX = useSharedValue(-200);
 
+  useEffect(() => {
+    translateX.value = withRepeat(
+      withTiming(400, { duration: 1600, easing: Easing.linear }),
+      -1,
+      false,
+    );
+    return () => cancelAnimation(translateX);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        animStyle,
+        { position: "absolute", top: 0, bottom: 0, width: 180 },
+      ]}
+    >
+      <LinearGradient
+        colors={["transparent", "rgba(255,255,255,0.4)", "transparent"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={{ flex: 1 }}
+      />
+    </Animated.View>
+  );
+}
+
+// ─── types ────────────────────────────────────────────────────────────────────
 interface RunDrawerProps {
   runState: RunState;
   elapsed: number;
@@ -37,6 +83,7 @@ interface RunDrawerProps {
   onEnd: () => void;
 }
 
+// ─── component ────────────────────────────────────────────────────────────────
 export function RunDrawer({
   runState,
   elapsed,
@@ -50,140 +97,302 @@ export function RunDrawer({
   const scheme = useColorScheme();
   const c = Colors[scheme];
 
-  const metricsRow = (
-    <View className="flex-row items-center mb-4">
-      <View className="flex-1 items-center">
-        <Text
-          className="text-[32px] font-extrabold"
-          style={{ color: c.textPrimary }}
-        >
-          {formatDuration(elapsed)}
-        </Text>
-        <Text
-          className="text-[11px] font-semibold mt-0.5"
-          style={{ color: c.textSecondary }}
-        >
-          Time
-        </Text>
-      </View>
-      <View className="w-px h-10 mx-2" style={{ backgroundColor: c.border }} />
-      <View className="flex-1 items-center">
-        <Text
-          className="text-[32px] font-extrabold"
-          style={{ color: c.textPrimary }}
-        >
-          {distanceKm.toFixed(2)}
-        </Text>
-        <Text
-          className="text-[11px] font-semibold mt-0.5"
-          style={{ color: c.textSecondary }}
-        >
-          km
-        </Text>
-      </View>
-    </View>
-  );
+  const isIdle = runState === "idle";
+  const isRunning = runState === "running";
+  const isPaused = runState === "paused";
 
-  function btnRow(
-    isRunningAnim: boolean,
-    onPress: () => void,
-    btnColor: string,
-    label: string,
-  ) {
-    return (
-      <View className="flex-row items-center">
-        <View
-          className="rounded-full overflow-hidden z-[2] border-2 border-white"
-          style={[
-            { width: OSTRICH_D, height: OSTRICH_D, backgroundColor: "#EDE8DF" },
-            OSTRICH_SHADOW,
-          ]}
-          pointerEvents="none"
-        >
-          <RunnerCharacter isRunning={isRunningAnim} size={OSTRICH_D} />
-        </View>
-        <Pressable
-          onPress={onPress}
-          className="flex-1 rounded-full items-center justify-center z-[1]"
-          style={[
-            {
-              height: BTN_HEIGHT,
-              marginLeft: -OSTRICH_OVERLAP,
-              paddingLeft: OSTRICH_OVERLAP + 8,
-              backgroundColor: btnColor,
-            },
-            ACTION_BTN_SHADOW,
-          ]}
-          android_ripple={{ color: "rgba(255,255,255,0.2)" }}
-          accessibilityRole="button"
-          accessibilityLabel={label}
-        >
-          <Text
-            className="text-white text-[15px] font-extrabold"
-            style={{ letterSpacing: 1.5 }}
-          >
-            {label}
-          </Text>
-        </Pressable>
-      </View>
-    );
-  }
+  // Shared animated value: thumb position (0 = left, max = right)
+  const containerWidth = useSharedValue(0);
+  const thumbX = useSharedValue(0);
+  const gestureStartX = useSharedValue(0);
 
-  if (runState === "idle") {
-    return (
-      <>
-        <Text
-          className="text-3xl font-extrabold mb-1"
-          style={{ color: c.textPrimary }}
-        >
-          Ready to run
-        </Text>
-        <View className="flex-row items-center mb-5 min-h-[20px]">
-          {locationName ? (
-            <>
-              <Text className="text-[13px]" style={{ color: c.primary }}>
-                {"📍 "}
-              </Text>
-              <Text className="text-[13px]" style={{ color: c.textSecondary }}>
-                {locationName}
-              </Text>
-            </>
-          ) : null}
-        </View>
-        {btnRow(false, onStart, c.primary, "START RUN")}
-      </>
-    );
-  }
+  // Stable ref so the onLayout callback always sees the latest runState
+  const runStateRef = useRef(runState);
+  runStateRef.current = runState;
 
-  if (runState === "running") {
-    return (
-      <>
-        {metricsRow}
-        {btnRow(true, onPause, "#F59E0B", "PAUSE")}
-      </>
-    );
-  }
+  // Animate thumb when state changes
+  useEffect(() => {
+    if (isRunning && containerWidth.value > 0) {
+      thumbX.value = withSpring(containerWidth.value - THUMB_SIZE, SPRING);
+    } else if (!isRunning) {
+      thumbX.value = withSpring(0, SPRING);
+    }
+  }, [runState]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // paused
+  const onLayout = useCallback((e: LayoutChangeEvent) => {
+    const w = e.nativeEvent.layout.width;
+    containerWidth.value = w;
+    // Snap thumb immediately if already running when layout fires (e.g., navigating back)
+    if (runStateRef.current === "running") {
+      thumbX.value = w - THUMB_SIZE;
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Stable wrapper so runOnJS works correctly
+  const triggerStart = useCallback(() => onStart(), [onStart]);
+
+  // Pan gesture — only active in idle state
+  const panGesture = Gesture.Pan()
+    .enabled(isIdle)
+    .activeOffsetX(10) // require intentional horizontal swipe
+    .onBegin(() => {
+      gestureStartX.value = thumbX.value;
+    })
+    .onUpdate((e) => {
+      const max = containerWidth.value - THUMB_SIZE;
+      thumbX.value = Math.max(
+        0,
+        Math.min(gestureStartX.value + e.translationX, max),
+      );
+    })
+    .onEnd(() => {
+      const max = containerWidth.value - THUMB_SIZE;
+      if (max > 0 && thumbX.value >= SLIDE_THRESHOLD * max) {
+        // Snap to right edge and start the run
+        thumbX.value = withSpring(max, SPRING);
+        runOnJS(triggerStart)();
+      } else {
+        // Snap back to start
+        thumbX.value = withSpring(0, SPRING);
+      }
+    });
+
+  const thumbAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: thumbX.value }],
+  }));
+
+  // ── render ──────────────────────────────────────────────────────────────────
   return (
     <>
-      {metricsRow}
-      {btnRow(false, onResume, c.primary, "RESUME")}
-      <Pressable
-        onPress={onEnd}
-        className="mt-2.5 py-3 rounded-full items-center"
-        style={{ borderWidth: 1.5, borderColor: "#EF4444" }}
-        android_ripple={{ color: "rgba(239,68,68,0.1)" }}
-        accessibilityRole="button"
-        accessibilityLabel="End session"
-      >
-        <Text
-          className="text-sm font-bold"
-          style={{ color: "#EF4444", letterSpacing: 0.5 }}
+      {/* Top section: idle heading OR live metrics */}
+      {isIdle ? (
+        <View>
+          <Text
+            className="text-3xl font-extrabold mb-1"
+            style={{ color: c.textPrimary }}
+          >
+            Ready to run
+          </Text>
+          <View className="flex-row items-center mb-5 min-h-[20px]">
+            {locationName ? (
+              <>
+                <Text className="text-[13px]" style={{ color: c.primary }}>
+                  {"📍 "}
+                </Text>
+                <Text
+                  className="text-[13px]"
+                  style={{ color: c.textSecondary }}
+                >
+                  {locationName}
+                </Text>
+              </>
+            ) : null}
+          </View>
+        </View>
+      ) : (
+        <View className="flex-row items-center mb-4">
+          <View className="flex-1 items-center">
+            <Text
+              className="text-[32px] font-extrabold"
+              style={{ color: c.textPrimary }}
+            >
+              {formatDuration(elapsed)}
+            </Text>
+            <Text
+              className="text-[11px] font-semibold mt-0.5"
+              style={{ color: c.textSecondary }}
+            >
+              Time
+            </Text>
+          </View>
+          <View
+            className="w-px h-10 mx-2"
+            style={{ backgroundColor: c.border }}
+          />
+          <View className="flex-1 items-center">
+            <Text
+              className="text-[32px] font-extrabold"
+              style={{ color: c.textPrimary }}
+            >
+              {distanceKm.toFixed(2)}
+            </Text>
+            <Text
+              className="text-[11px] font-semibold mt-0.5"
+              style={{ color: c.textSecondary }}
+            >
+              km
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* ── Button / slider row ──────────────────────────────────────────────
+          The GestureDetector wraps the entire row. RunnerCharacter stays at
+          the same tree position (inside Animated.View) so it never remounts. */}
+      <GestureDetector gesture={panGesture}>
+        <Animated.View
+          style={{ height: THUMB_SIZE, position: "relative" }}
+          onLayout={onLayout}
         >
-          End Session
-        </Text>
-      </Pressable>
+          {/* IDLE: full-width green track, label "SLIDE TO START ›"
+              The track is non-pressable — only the slide gesture matters. */}
+          {isIdle && (
+            <View
+              style={{
+                position: "absolute",
+                top: TRACK_TOP,
+                left: 0,
+                right: 0,
+                height: TRACK_HEIGHT,
+                borderRadius: TRACK_HEIGHT / 2,
+                backgroundColor: c.primary,
+                justifyContent: "center",
+                alignItems: "center",
+                paddingLeft: THUMB_PAD,
+                paddingRight: 16,
+                overflow: "hidden",
+              }}
+            >
+              <SlideShimmer />
+              <Text
+                style={{
+                  color: "rgba(255,255,255,0.9)",
+                  fontSize: 14,
+                  fontWeight: "800",
+                  letterSpacing: 1.5,
+                }}
+              >
+                {"SLIDE TO START  ›"}
+              </Text>
+            </View>
+          )}
+
+          {/* RUNNING: amber PAUSE button, ostrich is at the right end.
+              paddingRight reserves space so label centers in the visible area. */}
+          {isRunning && (
+            <Pressable
+              onPress={onPause}
+              style={{
+                position: "absolute",
+                top: TRACK_TOP,
+                left: 0,
+                right: 0,
+                height: TRACK_HEIGHT,
+                borderRadius: TRACK_HEIGHT / 2,
+                backgroundColor: c.warning,
+                justifyContent: "center",
+                alignItems: "center",
+                paddingRight: THUMB_PAD,
+              }}
+              android_ripple={{ color: "rgba(255,255,255,0.25)" }}
+              accessibilityRole="button"
+              accessibilityLabel="Pause run"
+            >
+              <Text
+                style={{
+                  color: "white",
+                  fontSize: 15,
+                  fontWeight: "800",
+                  letterSpacing: 1.5,
+                }}
+              >
+                PAUSE
+              </Text>
+            </Pressable>
+          )}
+
+          {/* PAUSED: RESUME (green pill, flex-1) + END (outlined red pill) side by side */}
+          {isPaused && (
+            <View
+              style={{
+                position: "absolute",
+                top: TRACK_TOP,
+                left: 0,
+                right: 0,
+                height: TRACK_HEIGHT,
+                flexDirection: "row",
+                gap: 8,
+              }}
+            >
+              <Pressable
+                onPress={onResume}
+                style={{
+                  flex: 1,
+                  paddingLeft: THUMB_PAD,
+                  borderRadius: TRACK_HEIGHT / 2,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  backgroundColor: c.primary,
+                }}
+                android_ripple={{ color: "rgba(255,255,255,0.2)" }}
+                accessibilityRole="button"
+                accessibilityLabel="Resume run"
+              >
+                <Text
+                  style={{
+                    color: "white",
+                    fontSize: 15,
+                    fontWeight: "800",
+                    letterSpacing: 1.5,
+                  }}
+                >
+                  RESUME
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={onEnd}
+                style={{
+                  width: END_BTN_WIDTH,
+                  borderRadius: TRACK_HEIGHT / 2,
+                  borderWidth: 1.5,
+                  borderColor: c.danger,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  backgroundColor: "transparent",
+                }}
+                android_ripple={{ color: "rgba(239,68,68,0.1)" }}
+                accessibilityRole="button"
+                accessibilityLabel="End session"
+              >
+                <Text
+                  style={{
+                    color: c.danger,
+                    fontSize: 13,
+                    fontWeight: "800",
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  END
+                </Text>
+              </Pressable>
+            </View>
+          )}
+
+          {/* Thumb (ostrich) — always at this tree position so RunnerCharacter
+              never unmounts and Rive animation never restarts. */}
+          <Animated.View
+            style={[
+              thumbAnimStyle,
+              THUMB_SHADOW,
+              {
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: THUMB_SIZE,
+                height: THUMB_SIZE,
+                borderRadius: THUMB_SIZE / 2,
+                backgroundColor: "#EDE8DF",
+                overflow: "hidden",
+                borderWidth: 2,
+                borderColor: "white",
+                zIndex: 2,
+              },
+            ]}
+          >
+            <RunnerCharacter isRunning={isRunning} size={THUMB_SIZE} />
+          </Animated.View>
+        </Animated.View>
+      </GestureDetector>
     </>
   );
 }
