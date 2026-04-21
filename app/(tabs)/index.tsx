@@ -1,12 +1,13 @@
 ﻿import { RunDrawer } from "@/components/run-drawer";
-import { Colors } from "@/constants/theme";
+import { Colors, MapStyles } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useLocation } from "@/hooks/use-location";
 import { useRunSession } from "@/hooks/use-run-session";
 import { useProfileStore } from "@/stores/profileStore";
+import { formatPace } from "@/utils/formatting";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Linking,
@@ -15,16 +16,18 @@ import {
   Text,
   View,
 } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import MapView, { Polyline, PROVIDER_DEFAULT } from "react-native-maps";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { formatPace } from "@/utils/formatting";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 const PILL_SHADOW = {
   shadowColor: "#000",
@@ -43,7 +46,11 @@ const DRAWER_SHADOW = {
 } as const;
 
 const DRAWER_EXTRA_HEIGHT = 96;
-const SNAP_SPRING = { damping: 50, stiffness: 300, overshootClamping: true } as const;
+const SNAP_SPRING = {
+  damping: 50,
+  stiffness: 300,
+  overshootClamping: true,
+} as const;
 
 export default function HomeScreen() {
   const scheme = useColorScheme();
@@ -58,8 +65,16 @@ export default function HomeScreen() {
     isLoadingLocation,
   } = useLocation();
 
-  const { runState, elapsed, distanceKm, routeCoords, handleStart, handlePause, handleResume, handleEnd } =
-    useRunSession(locationName);
+  const {
+    runState,
+    elapsed,
+    distanceKm,
+    routeCoords,
+    handleStart,
+    handlePause,
+    handleResume,
+    handleEnd,
+  } = useRunSession(locationName);
 
   const isRunning = runState === "running";
 
@@ -100,7 +115,8 @@ export default function HomeScreen() {
         })
         .onEnd((e) => {
           const shouldExpand =
-            drawerExpansion.value > DRAWER_EXTRA_HEIGHT / 2 || e.velocityY < -200;
+            drawerExpansion.value > DRAWER_EXTRA_HEIGHT / 2 ||
+            e.velocityY < -200;
           const target = shouldExpand ? DRAWER_EXTRA_HEIGHT : 0;
           drawerExpansion.value = withSpring(target, SNAP_SPRING);
           runOnJS(setIsExpanded)(shouldExpand);
@@ -131,7 +147,11 @@ export default function HomeScreen() {
     "?";
 
   return (
-    <SafeAreaView className="flex-1" edges={["top"]} style={{ backgroundColor: c.background }}>
+    <SafeAreaView
+      className="flex-1"
+      edges={["top"]}
+      style={{ backgroundColor: c.background }}
+    >
       {/* Top bar */}
       <View className="flex-row justify-between px-5 pt-2 pb-1">
         <Pressable
@@ -148,7 +168,10 @@ export default function HomeScreen() {
               contentFit="cover"
             />
           ) : (
-            <Text className="text-sm font-bold" style={{ color: c.textPrimary }}>
+            <Text
+              className="text-sm font-bold"
+              style={{ color: c.textPrimary }}
+            >
               {initials}
             </Text>
           )}
@@ -158,8 +181,14 @@ export default function HomeScreen() {
           className="flex-row items-center gap-x-1.5 px-3.5 py-2 rounded-full overflow-hidden"
           style={[{ backgroundColor: c.surface }, PILL_SHADOW]}
         >
-          <View className="w-2 h-2 rounded-full" style={{ backgroundColor: gpsDotColor }} />
-          <Text className="text-[13px] font-semibold" style={{ color: c.textSecondary }}>
+          <View
+            className="w-2 h-2 rounded-full"
+            style={{ backgroundColor: gpsDotColor }}
+          />
+          <Text
+            className="text-[13px] font-semibold"
+            style={{ color: c.textSecondary }}
+          >
             {permissionStatus === "granted" && currentLocation
               ? "GPS"
               : permissionStatus === "denied"
@@ -182,6 +211,9 @@ export default function HomeScreen() {
               showsMyLocationButton={false}
               showsCompass={false}
               toolbarEnabled={false}
+              customMapStyle={
+                scheme === "dark" ? MapStyles.dark : MapStyles.light
+              }
             >
               {routeCoords.length > 1 && (
                 <Polyline
@@ -194,7 +226,10 @@ export default function HomeScreen() {
           ) : (
             <View className="flex-1 items-center justify-center">
               <ActivityIndicator color={c.primary} size="large" />
-              <Text className="text-[13px] text-center px-8 mt-3" style={{ color: c.textSecondary }}>
+              <Text
+                className="text-[13px] text-center px-8 mt-3"
+                style={{ color: c.textSecondary }}
+              >
                 {isLoadingLocation ? "Locating..." : "Getting location..."}
               </Text>
             </View>
@@ -206,7 +241,10 @@ export default function HomeScreen() {
           style={{ backgroundColor: scheme === "dark" ? "#111827" : "#E5E7EB" }}
         >
           <Text className="text-3xl">{"📍"}</Text>
-          <Text className="text-[13px] text-center px-8 mt-3" style={{ color: c.textSecondary }}>
+          <Text
+            className="text-[13px] text-center px-8 mt-3"
+            style={{ color: c.textSecondary }}
+          >
             {permissionStatus === "denied"
               ? "Location access denied. Tap below to open Settings."
               : "Location is needed to show the map."}
@@ -222,7 +260,9 @@ export default function HomeScreen() {
             accessibilityRole="button"
           >
             <Text className="text-white font-bold text-sm">
-              {permissionStatus === "denied" ? "Open Settings" : "Allow Location"}
+              {permissionStatus === "denied"
+                ? "Open Settings"
+                : "Allow Location"}
             </Text>
           </Pressable>
         </View>
@@ -291,7 +331,11 @@ export default function HomeScreen() {
             >
               <View style={{ flex: 1, alignItems: "center" }}>
                 <Text
-                  style={{ fontSize: 22, fontWeight: "800", color: c.textPrimary }}
+                  style={{
+                    fontSize: 22,
+                    fontWeight: "800",
+                    color: c.textPrimary,
+                  }}
                 >
                   {paceSecsPerKm > 0 ? formatPace(paceSecsPerKm) : "--"}
                 </Text>
@@ -306,10 +350,16 @@ export default function HomeScreen() {
                   Avg Pace
                 </Text>
               </View>
-              <View style={{ width: 1, height: 40, backgroundColor: c.border }} />
+              <View
+                style={{ width: 1, height: 40, backgroundColor: c.border }}
+              />
               <View style={{ flex: 1, alignItems: "center" }}>
                 <Text
-                  style={{ fontSize: 22, fontWeight: "800", color: c.textPrimary }}
+                  style={{
+                    fontSize: 22,
+                    fontWeight: "800",
+                    color: c.textPrimary,
+                  }}
                 >
                   {caloriesKcal > 0 ? String(caloriesKcal) : "--"}
                 </Text>

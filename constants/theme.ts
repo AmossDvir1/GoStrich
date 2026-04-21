@@ -77,4 +77,126 @@ export const Fonts = Platform.select({
 });
 
 export type ColorScheme = "light" | "dark";
+
+/**
+ * Map styles for react-native-maps customMapStyle prop.
+ * Light style uses default Google Maps appearance.
+ * Dark style darkens elements and text for OLED screens.
+ */
+export const MapStyles = {
+  light: [] as any[],
+  dark: [
+    // Base: geometry and labels setup
+    { elementType: "geometry", stylers: [{ color: "#1a202c" }] },
+    // Labels with fill + stroke for readability (light text + dark outline)
+    { elementType: "labels.text.fill", stylers: [{ color: "#cbd5e1" }] },
+    {
+      elementType: "labels.text.stroke",
+      stylers: [{ color: "#1a202c", weight: 3 }],
+    },
+    // Hide POI icons to reduce clutter
+    { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+
+    // Administrative areas
+    {
+      featureType: "administrative",
+      elementType: "geometry",
+      stylers: [{ color: "#2d3748" }],
+    },
+    {
+      featureType: "administrative.country",
+      elementType: "labels.text.fill",
+      stylers: [{ color: "#f1f5f9" }],
+    },
+    {
+      featureType: "administrative.province",
+      elementType: "labels.text.fill",
+      stylers: [{ color: "#e2e8f0" }],
+    },
+    {
+      featureType: "administrative.locality",
+      elementType: "labels.text.fill",
+      stylers: [{ color: "#cbd5e1" }],
+    },
+    {
+      featureType: "administrative.land_parcel",
+      elementType: "labels",
+      stylers: [{ visibility: "off" }],
+    },
+    {
+      featureType: "administrative.neighborhood",
+      elementType: "labels",
+      stylers: [{ visibility: "off" }],
+    },
+
+    // POIs - simplified visibility to reduce clutter
+    {
+      featureType: "poi",
+      elementType: "geometry",
+      stylers: [{ color: "#2d3748" }],
+    },
+    {
+      featureType: "poi",
+      elementType: "labels",
+      stylers: [{ visibility: "simplified" }],
+    },
+    {
+      featureType: "poi.park",
+      elementType: "geometry",
+      stylers: [{ color: "#1e3a1f" }],
+    },
+
+    // Roads - major roads have labels, local roads hidden
+    {
+      featureType: "road",
+      elementType: "geometry",
+      stylers: [{ color: "#2d3748" }],
+    },
+    {
+      featureType: "road.highway",
+      elementType: "geometry",
+      stylers: [{ color: "#374151", weight: 2 }],
+    },
+    {
+      featureType: "road.highway",
+      elementType: "labels.text.fill",
+      stylers: [{ color: "#f1f5f9" }],
+    },
+    {
+      featureType: "road.arterial",
+      elementType: "geometry",
+      stylers: [{ color: "#3d4556" }],
+    },
+    {
+      featureType: "road.arterial",
+      elementType: "labels.text.fill",
+      stylers: [{ color: "#e2e8f0" }],
+    },
+
+    // Transit - simplified
+    {
+      featureType: "transit",
+      elementType: "geometry",
+      stylers: [{ color: "#2d3748" }],
+    },
+    {
+      featureType: "transit",
+      elementType: "labels",
+      stylers: [{ visibility: "simplified" }],
+    },
+
+    // Water
+    {
+      featureType: "water",
+      elementType: "geometry",
+      stylers: [{ color: "#0f1419" }],
+    },
+    {
+      featureType: "water",
+      elementType: "labels.text.fill",
+      stylers: [{ color: "#64748b" }],
+    },
+  ] as any[],
+};
+
 export type ThemeColors = (typeof Colors)["light"];
