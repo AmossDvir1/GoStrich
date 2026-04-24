@@ -1,13 +1,22 @@
-﻿import { BackButton } from "@/components/ui/back-button";
+﻿import { STORY_HEIGHT, STORY_WIDTH, StoryCard } from "@/components/story-card";
+import { BackButton } from "@/components/ui/back-button";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { Colors, MapStyles } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { shareSessionAsStory } from "@/services/sharing";
 import { useAppStore } from "@/stores/appStore";
 import { useWorkoutStore } from "@/stores/workoutStore";
 import { formatDistance, formatDuration, formatPace } from "@/utils/formatting";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useRef, useState } from "react";
+import {
+    ActivityIndicator,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
+} from "react-native";
 import MapView, { Polyline, PROVIDER_DEFAULT } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SizableText, XStack, YStack } from "tamagui";
@@ -71,6 +80,8 @@ export default function SessionSummaryScreen() {
   const workout = getWorkout(id);
   const insets = useSafeAreaInsets();
   const [discardVisible, setDiscardVisible] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const storyCardRef = useRef<View>(null);
 
   if (!workout) {
     return (
@@ -114,6 +125,14 @@ export default function SessionSummaryScreen() {
   const region = routeRegion(coords);
 
   const handleDiscard = () => setDiscardVisible(true);
+
+  const handleShare = () => {
+    shareSessionAsStory(
+      storyCardRef,
+      () => setIsSharing(true),
+      () => setIsSharing(false),
+    );
+  };
 
   return (
     <YStack flex={1} backgroundColor={c.background}>
@@ -277,6 +296,43 @@ export default function SessionSummaryScreen() {
         </Pressable>
 
         <Pressable
+          onPress={handleShare}
+          disabled={isSharing}
+          style={[
+            {
+              paddingVertical: 15,
+              borderRadius: 20,
+              alignItems: "center",
+              marginBottom: 12,
+              flexDirection: "row",
+              justifyContent: "center",
+              gap: 8,
+              borderWidth: 1.5,
+              borderColor: c.primary,
+              opacity: isSharing ? 0.6 : 1,
+            },
+          ]}
+          android_ripple={{ color: "rgba(16,185,129,0.1)" }}
+          accessibilityRole="button"
+          accessibilityLabel="Share session as Instagram Story"
+        >
+          {isSharing ? (
+            <ActivityIndicator size="small" color={c.primary} />
+          ) : (
+            <Text style={{ fontSize: 16 }}>📤</Text>
+          )}
+          <Text
+            style={{
+              color: c.primary,
+              fontSize: 15,
+              fontWeight: "700",
+            }}
+          >
+            {isSharing ? "Preparing…" : "Share to Instagram Story"}
+          </Text>
+        </Pressable>
+
+        <Pressable
           onPress={handleDiscard}
           style={{
             paddingVertical: 14,
@@ -292,6 +348,25 @@ export default function SessionSummaryScreen() {
           </Text>
         </Pressable>
       </ScrollView>
+
+      {/* Off-screen StoryCard — mounted hidden so captureRef can capture it */}
+      <View
+        style={{
+          position: "absolute",
+          top: 0,
+          left: -STORY_WIDTH - 20,
+          width: STORY_WIDTH,
+          height: STORY_HEIGHT,
+          opacity: 0,
+        }}
+        pointerEvents="none"
+      >
+        <StoryCard
+          ref={storyCardRef}
+          workout={workout}
+          unitSystem={unitSystem}
+        />
+      </View>
     </YStack>
   );
 }

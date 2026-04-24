@@ -1,11 +1,22 @@
-﻿import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+﻿import { STORY_HEIGHT, STORY_WIDTH, StoryCard } from "@/components/story-card";
 import { ScreenWrapper } from "@/components/ui/screen-wrapper";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { shareSessionAsStory } from "@/services/sharing";
+import { useAppStore } from "@/stores/appStore";
 import { useWorkoutStore } from "@/stores/workoutStore";
+import { WorkoutSummary } from "@/types/workout";
 import { formatDuration } from "@/utils/formatting";
 import { router } from "expo-router";
-import React from "react";
-import { Alert, FlatList, Pressable, Text } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import {
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Pressable,
+    Text,
+    View,
+} from "react-native";
 import { SizableText, XStack, YStack } from "tamagui";
 
 const CARD_SHADOW = {
@@ -21,6 +32,25 @@ export default function HistoryScreen() {
   const c = Colors[scheme];
   const workouts = useWorkoutStore((s) => s.workouts);
   const removeWorkout = useWorkoutStore((s) => s.removeWorkout);
+  const { unitSystem } = useAppStore();
+
+  const [sharingWorkout, setSharingWorkout] = useState<WorkoutSummary | null>(
+    null,
+  );
+  const [isSharing, setIsSharing] = useState(false);
+  const storyCardRef = useRef<View | null>(null);
+
+  useEffect(() => {
+    if (!sharingWorkout) return;
+    shareSessionAsStory(
+      storyCardRef,
+      () => setIsSharing(true),
+      () => {
+        setIsSharing(false);
+        setSharingWorkout(null);
+      },
+    );
+  }, [sharingWorkout]);
 
   const handleDelete = (id: string, name: string) => {
     Alert.alert("Delete Session", `Delete "${name}"?`, [
@@ -118,6 +148,20 @@ export default function HistoryScreen() {
                   </XStack>
                 </YStack>
                 <Pressable
+                  onPress={() => setSharingWorkout(item)}
+                  disabled={isSharing}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Share session: ${item.name}`}
+                  style={{ padding: 6, marginLeft: 4 }}
+                >
+                  {isSharing && sharingWorkout?.id === item.id ? (
+                    <ActivityIndicator size="small" color={c.primary} />
+                  ) : (
+                    <Text style={{ fontSize: 17 }}>{"\uD83D\uDCE4"}</Text>
+                  )}
+                </Pressable>
+                <Pressable
                   onPress={() => handleDelete(item.id, item.name)}
                   hitSlop={8}
                   accessibilityRole="button"
@@ -130,6 +174,27 @@ export default function HistoryScreen() {
             );
           }}
         />
+      )}
+
+      {/* Off-screen StoryCard — mounted when a share is triggered */}
+      {sharingWorkout && (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: -STORY_WIDTH - 20,
+            width: STORY_WIDTH,
+            height: STORY_HEIGHT,
+            opacity: 0,
+          }}
+          pointerEvents="none"
+        >
+          <StoryCard
+            ref={storyCardRef}
+            workout={sharingWorkout}
+            unitSystem={unitSystem}
+          />
+        </View>
       )}
     </ScreenWrapper>
   );
