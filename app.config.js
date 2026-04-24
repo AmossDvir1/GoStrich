@@ -56,6 +56,23 @@ const config = {
   plugins: [
     "expo-router",
     [
+      "expo-font",
+      {
+        fonts: [
+          "./assets/fonts/Montserrat/Montserrat-Thin.ttf",
+          "./assets/fonts/Montserrat/Montserrat-ExtraLight.ttf",
+          "./assets/fonts/Montserrat/Montserrat-Light.ttf",
+          "./assets/fonts/Montserrat/Montserrat-Regular.ttf",
+          "./assets/fonts/Montserrat/Montserrat-Italic.ttf",
+          "./assets/fonts/Montserrat/Montserrat-Medium.ttf",
+          "./assets/fonts/Montserrat/Montserrat-SemiBold.ttf",
+          "./assets/fonts/Montserrat/Montserrat-Bold.ttf",
+          "./assets/fonts/Montserrat/Montserrat-ExtraBold.ttf",
+          "./assets/fonts/Montserrat/Montserrat-Black.ttf",
+        ],
+      },
+    ],
+    [
       "expo-splash-screen",
       {
         image: "./assets/images/splash-icon.png",

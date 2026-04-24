@@ -1,3 +1,5 @@
+import { PhotoPickerModal } from "@/components/photo-picker-modal";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppStore } from "@/stores/appStore";
@@ -8,19 +10,19 @@ import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActionSheetIOS,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    TextInput,
-    View,
+  ActionSheetIOS,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Switch,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SizableText, XStack, YStack } from "tamagui";
 
 export default function ProfileScreen() {
   const scheme = useColorScheme();
@@ -29,6 +31,7 @@ export default function ProfileScreen() {
   const { user, logout } = useAuthStore();
   const { profile, save } = useProfileStore();
   const { darkMode, setDarkMode, unitSystem, setUnitSystem } = useAppStore();
+  const insets = useSafeAreaInsets();
 
   // Local editable state — committed on blur
   const [firstName, setFirstName] = useState(profile.firstName);
@@ -39,6 +42,8 @@ export default function ProfileScreen() {
   const [height, setHeight] = useState(
     profile.heightCm !== null ? String(profile.heightCm) : "",
   );
+  const [photoModalVisible, setPhotoModalVisible] = useState(false);
+  const [logoutModalVisible, setLogoutModalVisible] = useState(false);
 
   // Keep in sync if the store updates externally
   useEffect(() => {
@@ -57,19 +62,7 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleLogout = () => {
-    Alert.alert("Log out", "Are you sure you want to log out?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Log out",
-        style: "destructive",
-        onPress: async () => {
-          await logout();
-          router.replace("/auth");
-        },
-      },
-    ]);
-  };
+  const handleLogout = () => setLogoutModalVisible(true);
 
   // Derive initials for avatar
   const initials =
@@ -98,26 +91,15 @@ export default function ProfileScreen() {
         (i) => void handlePhotoAction(i, !!profile.photoUrl),
       );
     } else {
-      // Android: simulate with Alert
-      const alertOptions = [
-        { text: "Choose from Library", onPress: () => void pickFromLibrary() },
-        { text: "Take Photo", onPress: () => void pickFromCamera() },
-        ...(profile.photoUrl
-          ? [
-              {
-                text: "Remove Photo",
-                style: "destructive" as const,
-                onPress: () => void save({ photoUrl: null }),
-              },
-            ]
-          : []),
-        { text: "Cancel", style: "cancel" as const },
-      ];
-      Alert.alert("Change Profile Photo", undefined, alertOptions);
+      // Android: use custom modal
+      setPhotoModalVisible(true);
     }
   };
 
   const handlePhotoAction = async (index: number, hasPhoto: boolean) => {
+    // If user cancelled (index 3 on iOS if hasPhoto, 2 otherwise)
+    if (index === (hasPhoto ? 3 : 2)) return;
+
     if (index === 0) await pickFromLibrary();
     else if (index === 1) await pickFromCamera();
     else if (index === 2 && hasPhoto) await save({ photoUrl: null });
@@ -163,60 +145,102 @@ export default function ProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.root, { backgroundColor: c.background }]}>
+    <YStack flex={1} backgroundColor={c.background}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         {/* Header row */}
-        <View style={[styles.header, { borderBottomColor: c.border }]}>
-          <Text style={[styles.headerTitle, { color: c.textPrimary }]}>
+        <XStack
+          paddingHorizontal="$5"
+          paddingTop={insets.top + 12}
+          paddingBottom="$3"
+          alignItems="center"
+          justifyContent="space-between"
+          borderBottomWidth={1}
+          borderBottomColor={c.border}
+        >
+          <SizableText size="$5" fontWeight="700" color={c.textPrimary}>
             Profile
-          </Text>
+          </SizableText>
           <Pressable
             onPress={() => router.back()}
             hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel="Close"
           >
-            <Text style={[styles.closeBtn, { color: c.primary }]}>Done</Text>
+            <SizableText size="$4" fontWeight="600" color={c.primary}>
+              Done
+            </SizableText>
           </Pressable>
-        </View>
+        </XStack>
 
         <ScrollView
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={{
+            paddingHorizontal: 20,
+            paddingBottom: Math.max(insets.bottom + 24, 48),
+            paddingTop: 28,
+            gap: 4,
+          }}
           keyboardShouldPersistTaps="handled"
         >
           {/* Avatar — tap to change */}
           <Pressable
             onPress={handleChangePhoto}
-            style={[styles.avatar, { backgroundColor: c.primary }]}
+            style={{
+              width: 80,
+              height: 80,
+              borderRadius: 40,
+              alignSelf: "center",
+              alignItems: "center",
+              justifyContent: "center",
+              overflow: "hidden",
+              backgroundColor: c.primary,
+            }}
             accessibilityRole="button"
             accessibilityLabel="Change profile photo"
           >
             {profile.photoUrl ? (
               <Image
                 source={{ uri: profile.photoUrl }}
-                style={styles.avatarImg}
+                style={{ width: 80, height: 80, borderRadius: 40 }}
                 contentFit="cover"
               />
             ) : (
-              <Text style={styles.avatarText}>{initials}</Text>
+              <Text style={{ color: "#fff", fontSize: 30, fontWeight: "800" }}>
+                {initials}
+              </Text>
             )}
           </Pressable>
-          <Text style={[styles.changePhotoHint, { color: c.primary }]}>
+          <SizableText
+            size="$3"
+            fontWeight="600"
+            textAlign="center"
+            marginTop="$2"
+            marginBottom="$2"
+            color={c.primary}
+          >
             {profile.photoUrl ? "Change photo" : "Add profile photo"}
-          </Text>
+          </SizableText>
 
           {/* ── Identity ─────────────────────────────────────── */}
-          <Text style={[styles.sectionLabel, { color: c.textSecondary }]}>
+          <SizableText
+            size="$2"
+            fontWeight="700"
+            marginTop="$4"
+            marginBottom="$1.5"
+            marginLeft="$1"
+            color={c.textSecondary}
+            style={{ letterSpacing: 1.2 }}
+          >
             IDENTITY
-          </Text>
-          <View
-            style={[
-              styles.card,
-              { backgroundColor: c.surface, borderColor: c.border },
-            ]}
+          </SizableText>
+          <YStack
+            borderRadius="$4"
+            borderWidth={1}
+            borderColor={c.border}
+            backgroundColor={c.surface}
+            overflow="hidden"
           >
             <FieldRow
               label="First name"
@@ -236,25 +260,39 @@ export default function ProfileScreen() {
               c={c}
             />
             <Divider color={c.border} />
-            <View style={styles.fieldRow}>
-              <Text style={[styles.fieldLabel, { color: c.textSecondary }]}>
+            <XStack
+              paddingHorizontal="$4"
+              paddingVertical="$4"
+              alignItems="center"
+              justifyContent="space-between"
+            >
+              <SizableText size="$4" fontWeight="500" color={c.textSecondary}>
                 Email
-              </Text>
-              <Text style={[styles.fieldReadOnly, { color: c.textPrimary }]}>
+              </SizableText>
+              <SizableText size="$4" color={c.textPrimary}>
                 {user?.email ?? "—"}
-              </Text>
-            </View>
-          </View>
+              </SizableText>
+            </XStack>
+          </YStack>
 
           {/* ── Physical stats ───────────────────────────────── */}
-          <Text style={[styles.sectionLabel, { color: c.textSecondary }]}>
+          <SizableText
+            size="$2"
+            fontWeight="700"
+            marginTop="$4"
+            marginBottom="$1.5"
+            marginLeft="$1"
+            color={c.textSecondary}
+            style={{ letterSpacing: 1.2 }}
+          >
             PHYSICAL STATS
-          </Text>
-          <View
-            style={[
-              styles.card,
-              { backgroundColor: c.surface, borderColor: c.border },
-            ]}
+          </SizableText>
+          <YStack
+            borderRadius="$4"
+            borderWidth={1}
+            borderColor={c.border}
+            backgroundColor={c.surface}
+            overflow="hidden"
           >
             <FieldRow
               label="Weight (kg)"
@@ -275,73 +313,140 @@ export default function ProfileScreen() {
               keyboardType="decimal-pad"
               c={c}
             />
-          </View>
+          </YStack>
 
           {/* ── App settings ─────────────────────────────────── */}
-          <Text style={[styles.sectionLabel, { color: c.textSecondary }]}>
-            SETTINGS
-          </Text>
-          <View
-            style={[
-              styles.card,
-              { backgroundColor: c.surface, borderColor: c.border },
-            ]}
+          <SizableText
+            size="$2"
+            fontWeight="700"
+            marginTop="$4"
+            marginBottom="$1.5"
+            marginLeft="$1"
+            color={c.textSecondary}
+            style={{ letterSpacing: 1.2 }}
           >
-            <View style={styles.switchRow}>
-              <View>
-                <Text style={[styles.fieldLabel, { color: c.textPrimary }]}>
+            SETTINGS
+          </SizableText>
+          <YStack
+            borderRadius="$4"
+            borderWidth={1}
+            borderColor={c.border}
+            backgroundColor={c.surface}
+            overflow="hidden"
+          >
+            <XStack
+              paddingHorizontal="$4"
+              paddingVertical="$4"
+              alignItems="center"
+              justifyContent="space-between"
+            >
+              <YStack>
+                <SizableText size="$4" fontWeight="500" color={c.textPrimary}>
                   Dark Mode
-                </Text>
-                <Text style={[styles.fieldSub, { color: c.textSecondary }]}>
+                </SizableText>
+                <SizableText size="$3" marginTop="$0.5" color={c.textSecondary}>
                   {darkMode ? "On" : "Following system"}
-                </Text>
-              </View>
+                </SizableText>
+              </YStack>
               <Switch
                 value={darkMode}
                 onValueChange={setDarkMode}
                 trackColor={{ false: c.border, true: c.primary }}
                 thumbColor="#fff"
               />
-            </View>
+            </XStack>
             <Divider color={c.border} />
-            <View style={styles.switchRow}>
-              <View>
-                <Text style={[styles.fieldLabel, { color: c.textPrimary }]}>
+            <XStack
+              paddingHorizontal="$4"
+              paddingVertical="$4"
+              alignItems="center"
+              justifyContent="space-between"
+            >
+              <YStack>
+                <SizableText size="$4" fontWeight="500" color={c.textPrimary}>
                   Unit System
-                </Text>
-                <Text style={[styles.fieldSub, { color: c.textSecondary }]}>
+                </SizableText>
+                <SizableText size="$3" marginTop="$0.5" color={c.textSecondary}>
                   {unitSystem === "metric"
                     ? "Metric (km, kg)"
                     : "Imperial (mi, lb)"}
-                </Text>
-              </View>
+                </SizableText>
+              </YStack>
               <Switch
                 value={unitSystem === "imperial"}
                 onValueChange={(v) => setUnitSystem(v ? "imperial" : "metric")}
                 trackColor={{ false: c.border, true: c.primary }}
                 thumbColor="#fff"
               />
-            </View>
-          </View>
+            </XStack>
+          </YStack>
 
           {/* ── Log out ──────────────────────────────────────── */}
           <Pressable
             onPress={handleLogout}
-            style={[styles.logoutBtn, { borderColor: c.danger }]}
+            style={{
+              marginTop: 24,
+              borderRadius: 14,
+              borderWidth: 1.5,
+              paddingVertical: 15,
+              alignItems: "center",
+              borderColor: c.danger,
+            }}
             accessibilityRole="button"
             accessibilityLabel="Log out"
           >
-            <Text style={[styles.logoutText, { color: c.danger }]}>
+            <SizableText size="$4" fontWeight="700" color={c.danger}>
               Log out
-            </Text>
+            </SizableText>
           </Pressable>
 
-          <Text style={[styles.version, { color: c.border }]}>
+          <SizableText
+            size="$2"
+            textAlign="center"
+            marginTop="$5"
+            color={c.border}
+          >
             GoStrich v1.0.0 · 100% Offline-First
-          </Text>
+          </SizableText>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+
+      {/* Photo picker modal */}
+      <PhotoPickerModal
+        visible={photoModalVisible}
+        onDismiss={() => setPhotoModalVisible(false)}
+        title="Change Profile Photo"
+        options={[
+          {
+            text: "Choose from Library",
+            onPress: () => void pickFromLibrary(),
+          },
+          { text: "Take Photo", onPress: () => void pickFromCamera() },
+          ...(profile.photoUrl
+            ? [
+                {
+                  text: "Remove Photo",
+                  style: "destructive" as const,
+                  onPress: () => void save({ photoUrl: null }),
+                },
+              ]
+            : []),
+        ]}
+      />
+      <ConfirmModal
+        visible={logoutModalVisible}
+        title="Log out"
+        message="Are you sure you want to log out?"
+        confirmLabel="Log out"
+        confirmDestructive
+        onCancel={() => setLogoutModalVisible(false)}
+        onConfirm={async () => {
+          await logout();
+          router.replace("/auth");
+        }}
+        colors={c}
+      />
+    </YStack>
   );
 }
 
@@ -367,12 +472,23 @@ function FieldRow({
   c: ThemeColors;
 }) {
   return (
-    <View style={styles.fieldRow}>
-      <Text style={[styles.fieldLabel, { color: c.textSecondary }]}>
+    <XStack
+      paddingHorizontal="$4"
+      paddingVertical="$4"
+      alignItems="center"
+      justifyContent="space-between"
+    >
+      <SizableText size="$4" fontWeight="500" color={c.textSecondary}>
         {label}
-      </Text>
+      </SizableText>
       <TextInput
-        style={[styles.fieldInput, { color: c.textPrimary }]}
+        style={{
+          color: c.textPrimary,
+          fontSize: 15,
+          flex: 1,
+          textAlign: "right",
+          paddingLeft: 12,
+        }}
         value={value}
         onChangeText={onChangeText}
         onBlur={onBlur}
@@ -380,98 +496,19 @@ function FieldRow({
         placeholderTextColor={c.border}
         keyboardType={keyboardType}
         returnKeyType="done"
-        textAlign="right"
       />
-    </View>
+    </XStack>
   );
 }
 
 function Divider({ color }: { color: string }) {
-  return <View style={[styles.divider, { backgroundColor: color }]} />;
+  return (
+    <View
+      style={{
+        height: 1,
+        marginLeft: 16,
+        backgroundColor: color,
+      }}
+    />
+  );
 }
-
-// ── Styles ──────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  root: { flex: 1 },
-
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  headerTitle: { fontSize: 17, fontWeight: "700" },
-  closeBtn: { fontSize: 16, fontWeight: "600" },
-
-  scroll: { paddingHorizontal: 20, paddingBottom: 40, paddingTop: 24, gap: 8 },
-
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignSelf: "center",
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  avatarImg: { width: 80, height: 80, borderRadius: 40 },
-  avatarText: { color: "#fff", fontSize: 30, fontWeight: "800" },
-  changePhotoHint: {
-    textAlign: "center",
-    fontSize: 13,
-    fontWeight: "600",
-    marginTop: 8,
-    marginBottom: 8,
-  },
-
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1.2,
-    marginTop: 16,
-    marginBottom: 6,
-    marginLeft: 4,
-  },
-
-  card: {
-    borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: "hidden",
-  },
-
-  fieldRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  fieldLabel: { fontSize: 15, fontWeight: "500" },
-  fieldReadOnly: { fontSize: 15 },
-  fieldInput: { fontSize: 15, flex: 1, textAlign: "right" },
-  fieldSub: { fontSize: 12, marginTop: 2 },
-
-  switchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-
-  divider: { height: StyleSheet.hairlineWidth, marginLeft: 16 },
-
-  logoutBtn: {
-    marginTop: 24,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    paddingVertical: 15,
-    alignItems: "center",
-  },
-  logoutText: { fontSize: 15, fontWeight: "700" },
-
-  version: { fontSize: 11, textAlign: "center", marginTop: 20 },
-});

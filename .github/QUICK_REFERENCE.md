@@ -4,17 +4,30 @@
 
 | Doc | Purpose |
 |---|---|
+| [TECH_STACK.md](TECH_STACK.md) | **Comprehensive tech stack** (read this first!) |
+| [TECHNICAL_PLAN.md](TECHNICAL_PLAN.md) | Architecture, algorithms, data flow |
 | [high-level-plan.md](high-level-plan.md) | Original requirements brief |
-| [TECHNICAL_PLAN.md](TECHNICAL_PLAN.md) | Architecture, tech stack, algorithms |
 | [LOGIC_FLOW.md](LOGIC_FLOW.md) | Data flow diagrams |
 | [README.md](../README.md) | Setup, commands, project structure |
 | **This file** | Quick lookup |
 
 ---
 
-## App at a Glance
+## 🚀 Tech Stack at a Glance
 
-GoStrich = Strava for iOS/Android, 100% offline-first.
+```
+React Native 0.81 + Expo 54 + TypeScript 5.9
+├── State: Zustand 5.0
+├── Storage: AsyncStorage 2.2 + SecureStore 15.0
+├── Maps: react-native-maps 1.20 (Google Maps)
+├── Location: expo-location 19.0 (foreground GPS)
+├── Auth: Google Sign-In 16.1 + SecureStore
+├── Styling: NativeWind 4.1 (Tailwind CSS)
+├── Animation: Rive 9.8 + Reanimated 4.1
+└── Navigation: Expo Router 6.0 (file-based)
+```
+
+See [TECH_STACK.md](TECH_STACK.md) for full breakdown with versions, purposes, and trade-offs.
 
 **What's working:**
 - Google Sign-In (session in SecureStore, survives restarts)

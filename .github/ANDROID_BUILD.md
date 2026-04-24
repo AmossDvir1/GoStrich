@@ -20,6 +20,18 @@ cd android
 
 ---
 
+## TypeScript Type Check
+
+Run this from the **project root** (not `android/`) to catch type errors without building:
+
+```bash
+npx tsc --noEmit
+```
+
+This validates all `.ts` / `.tsx` files against `tsconfig.json` in strict mode. No output = no errors.
+
+---
+
 ## Local Development & Debugging
 
 For rapid iteration **without rebuilding the APK**, use Expo's dev server:
@@ -65,6 +77,51 @@ npm start
 
 ---
 
+## Running Release + Dev Builds on Same Device
+
+Both the release build (`assembleRelease`) and the dev server (`npx expo run:android --device`) produce the same package ID (`com.advir.gostrich`). **Only one can be installed at a time.**
+
+**Option 1: Uninstall Before Switching (Simplest)**
+
+```bash
+# Test release build
+cd android
+./gradlew assembleRelease
+# Install manually via ADB or Android Studio
+
+# Later, when you want to run dev server
+adb uninstall com.advir.gostrich
+npx expo run:android --device
+```
+
+**Option 2: Use Two Devices/Emulators**
+
+Keep the release build on your phone and run the dev server on an emulator (or vice versa):
+
+```bash
+# Terminal 1: Install release on device
+cd android
+./gradlew installRelease
+
+# Terminal 2: Run dev server on emulator
+npx expo run:android --device      # Select emulator when prompted
+```
+
+**Option 3: Test Release Without Installing**
+
+Just build the APK without installing, then install it manually when needed:
+
+```bash
+cd android
+./gradlew assembleRelease           # Creates APK file only
+# APK at: app/build/outputs/apk/release/app-release.apk
+
+# Install when ready (doesn't need to be connected during build)
+adb install app/build/outputs/apk/release/app-release.apk
+```
+
+---
+
 ## Build Variants
 
 | Command           | Output             | Signed With      | Metro Required?         |
@@ -103,13 +160,14 @@ cd android
 
 ## Troubleshooting
 
-| Symptom                                              | Cause                                                           | Fix                                                                                                 |
-| ---------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| "No matching variant of project :some-module"        | Stale autolinking JSON (paths point to old folder)              | Delete `android/build/generated/autolinking/autolinking.json` → `./gradlew clean`                   |
-| "Secrets detected" warning from GitHub               | Google Maps API key hardcoded in `AndroidManifest.xml`          | Move the key to a local properties file or CI secret; rotate the leaked key in Google Cloud Console |
-| Build fails after `npm install` of new native module | Autolinking not updated                                         | `./gradlew clean` then rebuild                                                                      |
-| APK installs but map is blank                        | Google Maps API key not set or SHA-1 fingerprint not registered | Register debug SHA-1 in Google Cloud Console                                                        |
-| `./gradlew` permission denied (Mac/Linux)            | File not executable                                             | `chmod +x gradlew`                                                                                  |
+| Symptom                                                                    | Cause                                                                  | Fix                                                                                                 |
+| -------------------------------------------------------------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `./gradlew clean` fails with CMake GLOB mismatch / ninja subcommand failed | Stale `.cxx` CMake cache referencing codegen dirs that don't exist yet | `Remove-Item -Recurse -Force android\app\.cxx` then re-run `./gradlew clean`                        |
+| "No matching variant of project :some-module"                              | Stale autolinking JSON (paths point to old folder)                     | Delete `android/build/generated/autolinking/autolinking.json` → `./gradlew clean`                   |
+| "Secrets detected" warning from GitHub                                     | Google Maps API key hardcoded in `AndroidManifest.xml`                 | Move the key to a local properties file or CI secret; rotate the leaked key in Google Cloud Console |
+| Build fails after `npm install` of new native module                       | Autolinking not updated                                                | `./gradlew clean` then rebuild                                                                      |
+| APK installs but map is blank                                              | Google Maps API key not set or SHA-1 fingerprint not registered        | Register debug SHA-1 in Google Cloud Console                                                        |
+| `./gradlew` permission denied (Mac/Linux)                                  | File not executable                                                    | `chmod +x gradlew`                                                                                  |
 
 ---
 

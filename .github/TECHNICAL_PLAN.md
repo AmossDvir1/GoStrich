@@ -1,8 +1,9 @@
 # GoStrich - Technical Architecture Plan
 
-**Version**: 1.0  
+**Version**: 2.0 (Updated)  
 **Date**: April 2026  
-**Status**: Architecture Ready for Approval
+**Status**: ✅ Implementation Complete (Phases 1-4)  
+**See also**: [TECH_STACK.md](TECH_STACK.md) for comprehensive dependency breakdown
 
 ---
 
@@ -18,21 +19,25 @@
 8. [Styling & Design System](#styling--design-system)
 9. [Navigation Flow](#navigation-flow)
 10. [Core Algorithms & Logic](#core-algorithms--logic)
-11. [Phase Breakdown](#phase-breakdown)
 
 ---
 
 ## Executive Summary
 
-GoStrich is a **100% offline-first** running tracker built with React Native + Expo, TypeScript, and local SQLite. The app enables users to:
+GoStrich is a **100% offline-first** running tracker for iOS and Android, fully implemented with:
 
-- Track runs with live GPS coordinates
-- View real-time maps with route polylines
-- Calculate distance, pace, and duration automatically
-- Store unlimited runs locally on-device
-- View historical workout data with analytics
+- ✅ React Native 0.81 + Expo 54 (New Architecture enabled)
+- ✅ Live GPS tracking (foreground, 1 sec / 2 m intervals) with Haversine distance calculation
+- ✅ Real-time maps with Google Maps polylines
+- ✅ Google Sign-In authentication (SecureStore encrypted session)
+- ✅ Distance, pace, duration metrics calculated in real-time
+- ✅ Workout auto-save with summary screen post-run
+- ✅ Full workout history with delete functionality
+- ✅ User profile (name, weight, height, photo)
+- ✅ Dark mode + metric/imperial unit toggle
+- ✅ Ostrich mascot animation (Rive)
 
-**Key Principle**: No backend. All data persists locally on the device.
+**Key Principle**: No backend, no external database, no sync service. All data persists locally using Zustand + AsyncStorage.
 
 ---
 
@@ -40,145 +45,123 @@ GoStrich is a **100% offline-first** running tracker built with React Native + E
 
 ### Core Framework
 
-- **React Native 0.73+** with Expo (managed workflow)
-- **TypeScript 5.x** (strict mode)
-- **React Navigation 6.x** (tab-based + stack navigation)
+| Tech | Version | Purpose |
+|------|---------|---------|
+| **React Native** | 0.81.5 | Cross-platform mobile UI (New Architecture enabled) |
+| **Expo** | ~54.0.33 | Managed workflow, SDK 54 compatibility |
+| **React** | 19.1.0 | UI library with concurrent features |
+| **Expo Router** | ~6.0.23 | File-based navigation (app/ directory) |
+| **TypeScript** | ~5.9.2 | Strict mode, full coverage |
 
-### Local Storage
+### Local Storage (Actual Implementation)
 
-- **WatermelonDB** (recommended over SQLite for React Native)
-  - Why: Better performance for large datasets, built-in reactivity, ORM-like queries
-  - Alternative: `expo-sqlite` (simpler, lighter)
-  - **Choice**: WatermelonDB for scalability
+| Tech | Purpose | Trade-off |
+|------|---------|-----------|
+| **Zustand** (^5.0.0) | Global state management | In-memory + persist middleware |
+| **AsyncStorage** (2.2.0) | Device persistence | Simple, sufficient for 100s of runs |
+| **expo-secure-store** (~15.0.8) | Encrypted storage | Auth session + profile data |
+
+> ⚠️ **Deviation from Plan**: Originally planned WatermelonDB for scalability. Actual implementation uses Zustand + AsyncStorage (simpler, sufficient for current scale). GPS arrays stripped from stored summaries to reduce storage footprint.
 
 ### Mapping & Location
 
-- **react-native-maps** (Google Maps backend)
-- **expo-location** (GPS tracking with foreground/background support)
+- **react-native-maps** (1.20.1) — Google Maps polylines
+- **expo-location** (~19.0.8) — Foreground GPS tracking
 
-### State Management
+### Authentication & Security
 
-- **Zustand** (lightweight, TypeScript-friendly, no boilerplate)
-  - Global state: Active run, app settings, user preferences
-  - Alternative: Context API (simpler but less optimized)
+- **@react-native-google-signin/google-signin** (^16.1.2) — OAuth 2.0
+- **expo-secure-store** (~15.0.8) — Encrypted session (survives app restart)
 
 ### Styling
 
-- **react-native-tailwindcss** (Tailwind utilities for React Native)
-- Custom theme extensions for running-specific colors
+- **NativeWind** (^4.1.23) — Tailwind CSS for React Native (not react-native-tailwindcss)
+- **expo-linear-gradient** (~15.0.8) — Gradient backgrounds
 
-### Utilities & Helpers
+### UI & Animation
 
-- **date-fns** (date formatting and calculations)
-- **uuid** (unique IDs for runs and GPS points)
-- **expo-constants** (app metadata)
-- **expo-permissions** (location permission handling)
+- **rive-react-native** (^9.8.2) — Ostrich mascot animation
+- **react-native-reanimated** (~4.1.1) — Smooth 60fps worklet animations
+- **react-native-gesture-handler** (~2.28.0) — Tab swipes, drawer interactions
+- **expo-haptics** (~15.0.8) — Haptic feedback
+- **@expo/vector-icons** (^15.0.3) — Icon system
 
-### Testing & Development
+### Development
 
-- **Jest** (unit testing)
-- **React Native Testing Library** (component testing)
-- **ESLint + Prettier** (code quality)
+- **ESLint** (^9.25.0) — Code linting
+- **Babel** (via expo) — JS transpilation
+- **Tailwind CSS** (^3.4.17) — CSS framework
 
 ---
 
 ## Project File Structure
 
+**Actual Structure (Phases 1-4 Complete)**:
+
 ```
-GoStrich/
-│
-├── app/                                    # Navigation & screens (Expo Router)
-│   ├── (tabs)/
-│   │   ├── _layout.tsx                    # Tab navigator layout
-│   │   ├── index.tsx                      # Home/Dashboard screen
-│   │   ├── history.tsx                    # Activity history screen
-│   │   └── settings.tsx                   # Settings screen
-│   ├── _layout.tsx                        # Root layout (app shell)
-│   ├── modal.tsx                          # Modal provider
-│   └── +not-found.tsx                     # 404 screen
-│
-├── components/                             # Reusable UI components
-│   ├── common/
-│   │   ├── Button.tsx                     # Reusable button component
-│   │   ├── Card.tsx                       # Reusable card wrapper
-│   │   ├── Badge.tsx                      # Status badges
-│   │   ├── Spinner.tsx                    # Loading spinner
-│   │   └── PermissionModal.tsx            # Permission request modal
-│   ├── tracking/
-│   │   ├── MapView.tsx                    # Live map with polyline
-│   │   ├── MetricsDisplay.tsx             # Live pace, distance, time
-│   │   ├── TrackingControls.tsx           # Start/pause/stop buttons
-│   │   └── GpsAccuracyIndicator.tsx       # GPS signal quality
-│   ├── history/
-│   │   ├── WorkoutCard.tsx                # Individual workout list item
-│   │   ├── WorkoutList.tsx                # List of workouts
-│   │   └── WorkoutDetail.tsx              # Detailed workout view
-│   └── ui/
-│       ├── typography.tsx                 # Text components (Heading, Body, etc.)
-│       ├── spacing.ts                     # Spacing scale
-│       └── colors.ts                      # Color palette
-│
-├── database/                               # Local database & models
-│   ├── schema.ts                          # WatermelonDB schema definitions
-│   ├── index.ts                           # Database initialization
-│   ├── models/
-│   │   ├── Workout.ts                     # Workout model
-│   │   └── GpsPoint.ts                    # GPS coordinate model
-│   └── migrations.ts                      # Schema migrations
-│
-├── stores/                                 # Zustand state stores
-│   ├── trackingStore.ts                   # Active run state
-│   ├── appStore.ts                        # App-wide settings
-│   └── workoutStore.ts                    # Workout history state
-│
-├── services/                               # Business logic & external APIs
-│   ├── gps/
-│   │   ├── locationService.ts             # GPS tracking & permissions
-│   │   └── gpsTracker.ts                  # GPS point collection
-│   ├── tracking/
-│   │   ├── trackingEngine.ts              # Main tracking logic (start/pause/stop)
-│   │   └── metricsCalculator.ts           # Pace, distance, duration calculations
-│   ├── workout/
-│   │   ├── workoutService.ts              # Save/load workouts
-│   │   └── workoutRepository.ts           # Database queries
-│   └── map/
-│       └── polylineService.ts             # Polyline encoding/decoding
-│
-├── hooks/                                  # Custom React hooks
-│   ├── useTracking.ts                     # Active tracking state & controls
-│   ├── useGpsTracking.ts                  # Real-time GPS tracking
-│   ├── useWorkoutHistory.ts               # Fetch and manage workout history
-│   ├── useLocationPermissions.ts          # Permission management hook
-│   └── useMetrics.ts                      # Calculate & update metrics
-│
-├── types/                                  # TypeScript type definitions
-│   ├── workout.ts                         # Workout, GpsPoint types
-│   ├── app.ts                             # App-wide types
-│   └── tracking.ts                        # Tracking engine types
-│
-├── utils/                                  # Utility functions
-│   ├── calculations.ts                    # Distance, pace, duration math
-│   ├── formatting.ts                      # Format times, distances, pace
-│   ├── validation.ts                      # Input validation
-│   ├── constants.ts                       # App constants
-│   └── logger.ts                          # Error logging
-│
-├── assets/
-│   ├── images/
-│   └── fonts/
-│
-├── __tests__/                              # Test files
-│   ├── unit/
-│   ├── components/
-│   └── integration/
-│
-├── .env                                    # Environment variables
-├── .env.example                            # Example env
-├── app.json                                # Expo config
-├── tsconfig.json                           # TypeScript config
-├── package.json                            # Dependencies
-└── README.md                               # Project documentation
+app/                                    # Expo Router app directory
+├── _layout.tsx                         # Root layout + auth guard
+├── +not-found.tsx                      # 404 fallback
+├── auth.tsx                            # Google Sign-In screen
+├── modal.tsx                           # Modal provider
+├── profile.tsx                         # Profile settings modal
+├── (tabs)/
+│   ├── _layout.tsx                    # Tab navigator (Home, History, Settings)
+│   ├── index.tsx                      # Home/Run screen (live map + controls)
+│   ├── history.tsx                    # Workout history list
+│   └── settings.tsx                   # App settings
+└── session/
+    └── [id].tsx                       # Session summary (post-run)
+
+components/
+├── run-drawer.tsx                     # Live metrics HUD during run
+├── photo-picker-modal.tsx             # Profile photo selection
+├── haptic-tab.tsx                     # Haptic feedback wrapper
+└── ui/
+    ├── runner-character.tsx           # Ostrich mascot (Rive)
+    ├── icon-symbol.tsx                # Icon system
+    └── icon-symbol.ios.tsx            # iOS-specific icons
+
+hooks/
+├── use-run-session.ts                 # Core GPS + timer + distance engine
+├── use-location.ts                    # Location permissions + reverse geocoding
+├── use-color-scheme.ts                # Dark mode detection
+├── use-color-scheme.web.ts            # Web-specific color scheme
+└── use-theme-color.ts                 # Dynamic color hook
+
+services/
+├── gps/index.ts                       # GPS service (expo-location wrapper)
+├── tracking/index.ts                  # Tracking business logic
+└── workout/index.ts                   # Workout persistence
+
+stores/
+├── authStore.ts                       # Google Sign-In + session (SecureStore)
+├── profileStore.ts                    # User profile (SecureStore)
+├── workoutStore.ts                    # Workout history (AsyncStorage)
+├── appStore.ts                        # App settings (in-memory)
+└── trackingStore.ts                   # Active run state (in-memory)
+
+types/
+├── workout.ts                         # WorkoutSummary, Workout interfaces
+├── tracking.ts                        # TrackingState interfaces
+└── auth.ts                            # User, Auth session types
+
+constants/
+└── theme.ts                           # Colors.light, Colors.dark palettes
+
+utils/
+└── formatting.ts                      # Format time, distance, pace
+
+assets/
+├── images/                            # Icons, splashscreen
+└── ostrich.riv                        # Rive animation (mascot)
 ```
+
+**Differences from Plan**:
+- No `database/` folder (using AsyncStorage instead of WatermelonDB)
+- No `components/common/`, `components/tracking/`, `components/history/` subdirs
+- Simpler file structure, flatter hierarchy
+- No `services/map/polylineService.ts` (handled inline in components)
 
 ---
 
@@ -186,592 +169,344 @@ GoStrich/
 
 ### Data Models
 
-#### **Workout**
+#### **Workout** (Full - kept in-memory)
 
 ```typescript
-{
-  id: string (UUID);                    // Primary key
-  name: string;                         // e.g., "Morning Run"
-  startTime: Date;                      // When run started
-  endTime: Date;                        // When run ended
-  distanceKm: number;                   // Total distance in km
-  durationSeconds: number;              // Total duration
-  avgPaceMinPerKm: number;              // Average pace
-  maxPaceMinPerKm: number;              // Fastest pace segment
-  elevationGainM: number;               // Total elevation (optional)
-  gpsPoints: GpsPoint[];                // Array of GPS coordinates
-  pauses: Array<{
-    startTime: Date;
-    endTime: Date;
-    durationSeconds: number;
-  }>;
-  notes?: string;                       // User notes
+interface Workout {
+  id: string;                          // UUID
+  name: string;                        // e.g., "Morning Run"
+  startTime: Date;
+  endTime: Date;
+  distanceKm: number;
+  durationSeconds: number;
+  pace: number;                        // min/km
+  gpsPoints: GpsPoint[];               // Full coordinates
   createdAt: Date;
   updatedAt: Date;
+}
+```
+
+#### **WorkoutSummary** (Persisted to AsyncStorage - GPS points stripped)
+
+```typescript
+interface WorkoutSummary {
+  id: string;
+  name: string;
+  startTime: Date;
+  endTime: Date;
+  distanceKm: number;
+  durationSeconds: number;
+  pace: number;                        // avg min/km
+  // ⚠️ gpsPoints NOT included to reduce storage
+  createdAt: Date;
 }
 ```
 
 #### **GpsPoint**
 
 ```typescript
-{
-  id: string (UUID);
-  workoutId: string;                    // FK to Workout
+interface GpsPoint {
   latitude: number;
   longitude: number;
-  altitude?: number;                    // Elevation (meters)
-  accuracy?: number;                    // GPS accuracy (meters)
-  speed?: number;                       // Current speed (m/s)
-  bearing?: number;                     // Direction (degrees)
-  timestamp: number;                    // Unix timestamp (ms)
+  altitude?: number;                   // meters
+  accuracy?: number;                   // meters
+  timestamp: number;                   // unix ms
 }
 ```
 
-### WatermelonDB Schema
+### Storage Strategy
 
-```typescript
-// Advantages:
-// - Reactive queries (UI updates automatically when data changes)
-// - ORM-like API (type-safe queries)
-// - Optimized for React Native
-// - Handles large datasets efficiently
-// - Built-in synchronization (useful for future cloud sync)
-```
+| Data | Where | Backend | Size | Persistence |
+|------|-------|---------|------|-------------|
+| Full Workouts | `trackingStore` | Zustand (in-memory) | Full GPS points | During app session only |
+| Workout Summaries | AsyncStorage | Zustand persist | No GPS points | Survives app restart |
+| Auth Session | SecureStore | Zustand persist | JSON + JWT | Encrypted, survives app restart |
+| Profile | SecureStore | Zustand persist | JSON | Encrypted, survives app restart |
+| App Settings | In-memory | Zustand | JSON | Lost on app restart (intentional) |
+
+**Why strip GPS points from storage?**
+- 1000+ coordinates per run = ~50-100 KB per workout
+- AsyncStorage has quota (~10 MB total)
+- Stripped summaries still contain all metrics needed for history view
+- Full GPS maintained in-memory during session for real-time map
 
 ---
 
 ## State Management
 
-### Store Structure (Zustand)
+### Store Structure (Zustand + Persistence)
 
-#### **trackingStore.ts** - Active Run State
-
-```typescript
-{
-  // Run data
-  isRunning: boolean;
-  isPaused: boolean;
-  currentRun: {
-    gpsPoints: GpsPoint[];
-    startTime: Date;
-    pausedDuration: number;
-  } | null;
-
-  // Metrics (real-time)
-  distance: number;
-  duration: number;
-  currentPace: number;
-  avgPace: number;
-  currentSpeed: number;
-
-  // Controls
-  startRun: () => Promise<void>;
-  pauseRun: () => void;
-  resumeRun: () => void;
-  stopRun: () => Promise<Workout>;
-  addGpsPoint: (point: GpsPoint) => void;
-  discardRun: () => void;
-}
-```
-
-#### **appStore.ts** - Global App State
+All stores follow this pattern:
 
 ```typescript
-{
-  // Settings
-  unitSystem: 'metric' | 'imperial';
-  mapStyle: 'standard' | 'satellite';
-  autoStartNextRun: boolean;
-
-  // UI state
-  isLoading: boolean;
-  error: string | null;
-  permissionsGranted: boolean;
-
-  // Methods
-  updateSettings: (settings: Partial<AppSettings>) => void;
-  setError: (error: string | null) => void;
-  clearError: () => void;
-}
+create(
+  persist(
+    (set) => ({
+      // State
+      state: initialValue,
+      // Actions
+      setState: (value) => set({ state: value })
+    }),
+    {
+      name: 'store-name',
+      storage: persistStorage // SecureStore or AsyncStorage
+    }
+  )
+)
 ```
 
-#### **workoutStore.ts** - Workout History
+### Stores Reference
 
-```typescript
-{
-  workouts: Workout[];
-  selectedWorkout: Workout | null;
-  isLoadingWorkouts: boolean;
+#### **trackingStore** (In-memory)
+- Active run state during workout
+- Distance, duration, pace calculations
+- GPS points array (full coordinates)
+- Start/pause/resume/end handlers
 
-  loadWorkouts: () => Promise<void>;
-  selectWorkout: (id: string) => void;
-  deleteWorkout: (id: string) => Promise<void>;
-  updateWorkout: (id: string, updates: Partial<Workout>) => Promise<void>;
-}
-```
+#### **workoutStore** (AsyncStorage persist)
+- `workouts: WorkoutSummary[]`
+- Add/delete/load workout operations
+- Loaded on app start (hydration)
+
+#### **authStore** (SecureStore persist)
+- `isLoggedIn: boolean`
+- `user: { email, name, photoUrl }`
+- `isHydrating: boolean`
+- Login/logout handlers
+
+#### **profileStore** (SecureStore persist)
+- `firstName, lastName`
+- `weightKg, heightCm`
+- `photoUrl`
+
+#### **appStore** (In-memory)
+- `unitSystem: 'metric' | 'imperial'`
+- `mapStyle: 'standard' | 'satellite'`
+- `darkMode: boolean`
+- Settings update handlers
 
 ---
 
-## Component Hierarchy
+## Component Hierarchy & Navigation
+
+### Root Navigation Structure
+
+```
+Root Layout (app/_layout.tsx)
+├── Auth Guard
+│   ├── If not logged in → /auth screen
+│   └── If logged in → Tab Navigator
+└── Tab Navigator (tabs)
+    ├── Home (index.tsx)
+    │   └── Map + Run Drawer + Controls
+    ├── History (history.tsx)
+    │   └── Workout List
+    └── Settings (settings.tsx)
+        └── Settings Controls
+
+Modal Provider (app/modal.tsx)
+├── Profile Settings (profile.tsx)
+├── Permission Alerts
+└── Confirmation Dialogs
+
+Post-Run Screen
+└── Session Summary (session/[id].tsx)
+    └── Map Replay + Workout Stats
+```
 
 ### Screen Components
 
-```
-Root (App Shell)
-├── Tabs Navigator
-│   ├── Home Screen (Dashboard)
-│   │   └── MapView + MetricsDisplay + TrackingControls
-│   ├── History Screen
-│   │   └── WorkoutList
-│   │       └── WorkoutCard (individual items)
-│   └── Settings Screen
-│       └── Setting controls
-└── Modal Provider
-    └── Permission Modal
-    └── Confirmation Modals
-```
+#### **Home Screen (app/(tabs)/index.tsx)**
+- Full-screen map with current location
+- Polyline showing route
+- User location marker
+- Bottom Run Drawer showing:
+  - Distance, Duration, Pace
+  - Start/Pause/Resume/Stop buttons
+  - State indicator (running/paused/idle)
 
-### Component Tree Detail
+#### **History Screen (app/(tabs)/history.tsx)**
+- Flat list of past WorkoutSummaries
+- Delete functionality per workout
+- Tap to view full summary
 
-#### **Home Screen (Dashboard)**
+#### **Settings Screen (app/(tabs)/settings.tsx)**
+- Unit system toggle (metric/imperial)
+- Dark mode toggle
+- Map style selector
+- Profile button
+- Logout button
 
-```
-<Dashboard>
-  <PermissionChecker />
-  <MapContainer>
-    <MapView />
-    <UserLocation Marker />
-    <Route Polyline />
-  </MapContainer>
-  <BottomSheet>
-    <MetricsDisplay>
-      <Distance />
-      <Duration />
-      <CurrentPace />
-      <AvgPace />
-    </MetricsDisplay>
-    <TrackingControls>
-      <StartButton />
-      <PauseButton />
-      <StopButton />
-      <DiscardButton />
-    </TrackingControls>
-  </BottomSheet>
-</Dashboard>
-```
+#### **Profile Modal (app/profile.tsx)**
+- Profile photo picker
+- Name, weight, height inputs
+- Logout button
 
-#### **History Screen**
-
-```
-<HistoryScreen>
-  <SearchBar />
-  <FilterChips (Date, Distance) />
-  <WorkoutList>
-    <WorkoutCard
-      onClick={() => navigate to detail}
-    />
-  </WorkoutList>
-</HistoryScreen>
-```
-
----
-
-## Service Layer Architecture
-
-### GPS Service (`services/gps/locationService.ts`)
-
-```typescript
-export class LocationService {
-  // Permissions
-  requestLocationPermissions(): Promise<boolean>;
-  hasPermission(): Promise<boolean>;
-  openSystemSettings(): void;
-
-  // Tracking
-  startWatchingPosition(callback: (point) => void): void;
-  stopWatchingPosition(): void;
-  getCurrentLocation(): Promise<GpsPoint>;
-}
-```
-
-### Tracking Engine (`services/tracking/trackingEngine.ts`)
-
-```typescript
-export class TrackingEngine {
-  startTracking(): Promise<void>;
-  pauseTracking(): void;
-  resumeTracking(): void;
-  stopTracking(): Promise<Workout>;
-  addGpsPoint(point: GpsPoint): void;
-  discard(): void;
-
-  // Internal state
-  private gpsPoints: GpsPoint[] = [];
-  private startTime: Date;
-  private pausedSegments: Pause[] = [];
-}
-```
-
-### Metrics Calculator (`services/tracking/metricsCalculator.ts`)
-
-```typescript
-export class MetricsCalculator {
-  // Distance calculation (Haversine formula)
-  calculateDistance(points: GpsPoint[]): number;
-
-  // Pace calculations
-  calculateCurrentPace(lastNPoints: GpsPoint[], n: number = 10): number;
-  calculateAveragePace(points: GpsPoint[], duration: number): number;
-
-  // Filtering
-  filterOutliers(points: GpsPoint[]): GpsPoint[];
-  smoothElevationData(points: GpsPoint[]): GpsPoint[];
-}
-```
-
-### Workout Service (`services/workout/workoutService.ts`)
-
-```typescript
-export class WorkoutService {
-  // CRUD operations
-  saveWorkout(workout: Workout): Promise<string>;
-  getWorkout(id: string): Promise<Workout>;
-  getAllWorkouts(): Promise<Workout[]>;
-  updateWorkout(id: string, updates: Partial<Workout>): Promise<void>;
-  deleteWorkout(id: string): Promise<void>;
-
-  // Queries
-  getWorkoutsByDateRange(start: Date, end: Date): Promise<Workout[]>;
-  searchWorkouts(query: string): Promise<Workout[]>;
-}
-```
+#### **Session Summary (app/session/[id].tsx)**
+- Map replay of full route
+- Workout stats (distance, time, pace)
+- Save/delete options
 
 ---
 
 ## Styling & Design System
 
-### Color Palette
+### Theme System (constants/theme.ts)
 
 ```typescript
-export const colors = {
-  // Primary
-  primary: "#FF6B35", // Action buttons, active states
-  primaryLight: "#FFB4A0",
-  primaryDark: "#E85A1F",
-
-  // Secondary
-  secondary: "#004E89", // Secondary actions
-  secondaryLight: "#0079C1",
-
-  // Status
-  success: "#10B981", // Completed, positive
-  warning: "#FBBF24", // Caution
-  error: "#EF4444", // Errors, stopped
-  info: "#3B82F6", // Info alerts
-
-  // Neutral
-  bg: "#FFFFFF",
-  bgDark: "#F9FAFB",
-  border: "#E5E7EB",
-  text: "#111827",
-  textSecondary: "#6B7280",
-  textTertiary: "#9CA3AF",
-
-  // Pace/Zone specific
-  paceEasy: "#86EFAC", // Z1-Z2 (green)
-  paceMedium: "#FBBF24", // Z3 (yellow)
-  paceHard: "#FB923C", // Z4 (orange)
-  paceMax: "#EF4444", // Z5 (red)
-};
+export const Colors = {
+  light: {
+    background: '#FFFFFF',
+    surface: '#F9FAFB',
+    text: '#111827',
+    textSecondary: '#6B7280',
+    primary: '#FF6B35',
+    primaryLight: '#FFB4A0',
+    border: '#E5E7EB'
+  },
+  dark: {
+    background: '#1F2937',
+    surface: '#111827',
+    text: '#F9FAFB',
+    textSecondary: '#D1D5DB',
+    primary: '#FF6B35',
+    primaryLight: '#FFB4A0',
+    border: '#374151'
+  }
+}
 ```
 
-### Typography
+### NativeWind Usage
 
 ```typescript
-export const typography = {
-  // Headings
-  h1: { fontSize: 32, fontWeight: "700", lineHeight: 40 },
-  h2: { fontSize: 24, fontWeight: "700", lineHeight: 32 },
-  h3: { fontSize: 20, fontWeight: "600", lineHeight: 28 },
+// Static layout classes
+<View className="flex-1 gap-4 p-4" />
 
-  // Body
-  body: { fontSize: 16, fontWeight: "400", lineHeight: 24 },
-  bodySmall: { fontSize: 14, fontWeight: "400", lineHeight: 20 },
-  bodyTiny: { fontSize: 12, fontWeight: "400", lineHeight: 18 },
+// Dynamic colors via style prop
+<View style={{ backgroundColor: Colors[scheme].background }} />
 
-  // Metrics (large numbers)
-  metric: { fontSize: 48, fontWeight: "700", lineHeight: 56 },
-};
+// Combined
+<Text className="text-xl font-bold dark:text-white">Distance</Text>
 ```
 
-### Spacing Scale
+### Tailwind Configuration (tailwind.config.js)
 
-```typescript
-export const spacing = {
-  xs: 4, // Tiny gaps
-  sm: 8, // Small gaps
-  md: 16, // Default
-  lg: 24, // Large sections
-  xl: 32, // Very large
-  "2xl": 48, // Extra large
-};
-```
-
-### Using Tailwind CSS
-
-```typescript
-// Example component styling
-<View style={tailwind('flex-1 bg-white p-4')}>
-  <Text style={tailwind('text-xl font-bold text-slate-900')}>
-    Distance
-  </Text>
-</View>
-```
+NativeWind exposes Tailwind utilities for React Native. See [tailwind-css.instructions.md](instructions/tailwind-css.instructions.md) for detailed guidelines.
 
 ---
 
 ## Navigation Flow
 
-### Screen Hierarchy
+Expo Router handles file-based navigation:
 
 ```
-RootNavigator (Stack)
-├── TabNavigator (Bottom Tabs)
-│   ├── HomeStack (Stack)
-│   │   ├── Dashboard (Home Tab)
-│   │   └── WorkoutDetailModal (if needed)
-│   ├── HistoryStack (Stack)
-│   │   ├── History (History Tab)
-│   │   └── WorkoutDetail (Stack navigation)
-│   └── SettingsStack (Stack)
-│       └── Settings (Settings Tab)
-└── Modal (Outside tabs)
-    ├── PermissionModal
-    ├── ConfirmationModals
-    └── ErrorModals
+app/                    → Route prefix
+├── (tabs)/_layout      → Tab group (home, history, settings)
+├── auth                → /auth route
+├── profile             → /profile modal
+└── session/[id]        → /session/:id (dynamic route)
 ```
 
-### Deep Linking (Future Ready)
+**Auth Flow**:
+1. User launches app
+2. Root layout checks `authStore.isLoggedIn`
+3. If false → redirect to `/auth` (Google Sign-In)
+4. If true → show tab navigator
 
+**Run Lifecycle**:
 ```
-gostrich://home
-gostrich://history
-gostrich://workout/:id
-gostrich://settings
+(tabs)/index.tsx
+  ↓ user taps "Start"
+use-run-session hook
+  ↓ user taps "Stop"
+trackingStore saves workout
+  ↓ router.push('/session/[id]')
+session/[id].tsx
+  ↓ user taps "Done"
+→ back to (tabs)/index.tsx
 ```
 
 ---
 
-## Core Algorithms & Logic
+## Implementation Status
 
-### 1. Distance Calculation (Haversine Formula)
+### ✅ Complete (Phases 1-4)
+
+| Phase | Feature | Status |
+|-------|---------|--------|
+| 1 | Setup & Navigation | ✅ Complete |
+| 2 | Map & UI Components | ✅ Complete |
+| 3 | Location Permissions & GPS | ✅ Complete (foreground only) |
+| 4 | Tracking Engine & Calculations | ✅ Complete |
+
+**What's working**:
+- Google Sign-In with SecureStore persistence
+- Live GPS tracking (BestForNavigation, 1 sec / 2 m)
+- Real-time map with polyline
+- Start/Pause/Resume/Stop controls
+- Distance (Haversine) + pace calculations
+- Workout auto-save + session summary
+- History view with delete
+- Profile settings
+- Dark mode + unit system toggle
+
+### 🔄 Future Enhancements (Not in MVP)
+
+| Feature | Notes |
+|---------|-------|
+| Background GPS | Complexity & battery drain; requires foreground service |
+| Analytics | Aggregated fitness metrics, streaks, PR tracking |
+| Social Sharing | QR codes or links to runs |
+| Data Export | CSV/GPX export functionality |
+| Offline Maps | Tile caching for frequent areas |
+| Elevation Profiles | Requires elevation data during tracking |
+
+---
+
+## Core Algorithms
+
+### 1. Haversine Distance Formula
+
+Calculates distance between two GPS coordinates accounting for Earth's curvature:
 
 ```typescript
-function calculateDistance(
-  point1: { lat: number; lon: number },
-  point2: { lat: number; lon: number },
-): number {
-  const R = 6371; // Earth's radius in km
-  const dLat = toRad(point2.lat - point1.lat);
-  const dLon = toRad(point2.lon - point1.lon);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(point1.lat)) *
-      Math.cos(toRad(point2.lat)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-// Total distance = sum of all consecutive segments
+const R = 6371; // Earth radius in km
+const dLat = toRad(lat2 - lat1);
+const dLon = toRad(lon2 - lon1);
+const a = sin²(dLat/2) + cos(lat1) × cos(lat2) × sin²(dLon/2);
+const c = 2 × atan2(√a, √(1-a));
+distance = R × c;
 ```
+
+**Total Distance** = Sum of all consecutive GPS point distances
 
 ### 2. Pace Calculation
 
 ```typescript
-function calculatePace(distanceKm: number, durationSeconds: number): number {
-  // Returns pace in minutes per km
-  if (distanceKm <= 0 || durationSeconds <= 0) return 0;
-  const durationMinutes = durationSeconds / 60;
-  return durationMinutes / distanceKm;
-}
-
-// Format: "5:42" (5 minutes 42 seconds per km)
+pace (min/km) = (duration in minutes) / (distance in km)
 ```
 
-### 3. GPS Outlier Filtering
+Updated in real-time during run.
+
+### 3. GPS Point Filtering
 
 ```typescript
-function filterOutliers(points: GpsPoint[]): GpsPoint[] {
-  // Remove points with:
-  // - Unrealistic speed (e.g., >100 km/h)
-  // - Very low accuracy (>100m)
-  // - Duplicate/same coordinates
-
-  return points.filter((point, idx) => {
-    if (idx === 0) return true;
-
-    const prev = points[idx - 1];
-    const distance = calculateDistance(prev, point);
-    const timeDelta = (point.timestamp - prev.timestamp) / 1000;
-    const speed = (distance / timeDelta) * 3.6; // m/s to km/h
-
-    // Reject if speed > 50 km/h or accuracy too poor
-    return speed <= 50 && (point.accuracy || 0) < 100;
-  });
-}
+// Reject points if:
+// - Speed > 50 km/h (unrealistic for running)
+// - Accuracy > 100m (too noisy)
+// - Duplicate coordinates
 ```
 
-### 4. Pause Handling
+### 4. Storage Optimization
 
 ```typescript
-// Track pauses separately
-interface Pause {
-  startTime: Date;
-  endTime: Date;
-}
+// In trackingStore (full Workout with GPS):
+{ id, name, startTime, distance, duration, pace, gpsPoints[] }
 
-// When resuming, calculate total paused duration
-const totalPausedDuration = pauses.reduce(
-  (sum, pause) => sum + (pause.endTime - pause.startTime),
-  0,
-);
-
-// Moving time = duration - paused duration
-const movingTime = duration - totalPausedDuration;
+// Persisted to AsyncStorage (WorkoutSummary):
+{ id, name, startTime, distance, duration, pace } 
+// ⚠️ gpsPoints stripped to save space
 ```
-
----
-
-## Phase Breakdown
-
-### Phase 1: Setup & Navigation ✅
-
-**Objective**: Get the basic app shell working with navigation
-
-**Tasks**:
-
-- [ ] Initialize Expo project with TypeScript
-- [ ] Set up navigation (tabs + stack)
-- [ ] Create screen stubs (Dashboard, History, Settings)
-- [ ] Configure Tailwind CSS
-- [ ] Set up folder structure
-
-**Dependencies**: None (just Expo setup)
-
----
-
-### Phase 2: Map & UI Components 🔄
-
-**Objective**: Build the visual layer without tracking logic
-
-**Tasks**:
-
-- [ ] Implement MapView component with marker
-- [ ] Create MetricsDisplay component
-- [ ] Build TrackingControls component
-- [ ] Create WorkoutCard component for history
-- [ ] Implement bottom sheet/modal for metrics
-- [ ] Add PermissionModal component
-
-**Dependencies**: react-native-maps, @react-native-bottom-sheet
-
----
-
-### Phase 3: Location Permissions & GPS 🔄
-
-**Objective**: Request permissions and set up GPS tracking infrastructure
-
-**Tasks**:
-
-- [ ] Implement LocationService with permission handling
-- [ ] Set up expo-location with foreground tracking
-- [ ] Create useLocationPermissions hook
-- [ ] Add permission error UI
-- [ ] Test on real device
-
-**Dependencies**: expo-location
-
----
-
-### Phase 4: Tracking Engine & Calculations 🔄
-
-**Objective**: Core running logic
-
-**Tasks**:
-
-- [ ] Build TrackingEngine class (start/pause/stop)
-- [ ] Implement MetricsCalculator (distance, pace)
-- [ ] Create useTracking hook
-- [ ] Wire tracking controls to engine
-- [ ] Real-time metrics updates to UI
-- [ ] Add GPS point filtering
-
-**Dependencies**: None (pure logic)
-
----
-
-### Phase 5: Local Database Setup 🔄
-
-**Objective**: Persist workouts locally
-
-**Tasks**:
-
-- [ ] Set up WatermelonDB with schema
-- [ ] Create Workout and GpsPoint models
-- [ ] Implement WorkoutService (CRUD)
-- [ ] Wire up save/load functionality
-- [ ] Test data persistence
-
-**Dependencies**: WatermelonDB, @react-native-firebase/firestore (or simpler: expo-sqlite)
-
----
-
-### Phase 6: Map Polyline Drawing 🔄
-
-**Objective**: Visualize the route on the map
-
-**Tasks**:
-
-- [ ] Create polyline from GPS points
-- [ ] Update polyline in real-time
-- [ ] Implement polyline simplification (for performance)
-- [ ] Add color coding (pace-based)
-- [ ] Test with long runs
-
-**Dependencies**: react-native-maps
-
----
-
-### Phase 7: History & Analytics 🔄
-
-**Objective**: View past workouts and stats
-
-**Tasks**:
-
-- [ ] Load workouts from database
-- [ ] Implement WorkoutList component
-- [ ] Build workout detail view
-- [ ] Add filtering (by date, distance)
-- [ ] Show workout stats (total distance, avg pace)
-
-**Dependencies**: None (uses existing services)
-
----
-
-### Phase 8: Optimization & Polish 🔄
-
-**Objective**: Performance, battery, UX refinement
-
-**Tasks**:
-
-- [ ] Optimize FlatList rendering
-- [ ] Reduce battery drain (GPS accuracy tuning)
-- [ ] Add error boundaries
-- [ ] Implement logging
-- [ ] Test on multiple devices
-- [ ] Add loading states and feedback
 
 **Dependencies**: None
 

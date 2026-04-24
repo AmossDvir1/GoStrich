@@ -1,11 +1,12 @@
 ﻿import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { ScreenWrapper } from "@/components/ui/screen-wrapper";
 import { useWorkoutStore } from "@/stores/workoutStore";
 import { formatDuration } from "@/utils/formatting";
 import { router } from "expo-router";
 import React from "react";
-import { Alert, FlatList, Pressable, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Alert, FlatList, Pressable, Text } from "react-native";
+import { SizableText, XStack, YStack } from "tamagui";
 
 const CARD_SHADOW = {
   shadowColor: "#000",
@@ -33,39 +34,42 @@ export default function HistoryScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: c.background }}>
-      <View className="px-6 pt-5 pb-3">
-        <Text
-          className="text-3xl font-extrabold"
-          style={{ color: c.textPrimary }}
-        >
+    <ScreenWrapper>
+      <YStack paddingHorizontal="$6" paddingTop="$5" paddingBottom="$3">
+        <SizableText size="$9" fontWeight="800" color={c.textPrimary}>
           Sessions
-        </Text>
-        <Text className="text-[13px] mt-0.5" style={{ color: c.textSecondary }}>
+        </SizableText>
+        <SizableText size="$3" marginTop="$1" color={c.textSecondary}>
           {workouts.length > 0
             ? `${workouts.length} run${workouts.length !== 1 ? "s" : ""}`
             : "Your past runs"}
-        </Text>
-      </View>
+        </SizableText>
+      </YStack>
 
       {workouts.length === 0 ? (
-        <View className="flex-1 items-center justify-center">
-          <Text className="text-5xl mb-3">{"🏃"}</Text>
-          <Text
-            className="text-[17px] font-semibold mb-1.5"
-            style={{ color: c.textSecondary }}
+        <YStack flex={1} alignItems="center" justifyContent="center">
+          <Text style={{ fontSize: 48, marginBottom: 12 }}>{"🏃"}</Text>
+          <SizableText
+            size="$5"
+            fontWeight="600"
+            marginBottom="$3"
+            color={c.textSecondary}
           >
             No runs yet
-          </Text>
-          <Text className="text-[13px]" style={{ color: c.textSecondary }}>
+          </SizableText>
+          <SizableText size="$3" color={c.textSecondary}>
             Start your first run to see it here
-          </Text>
-        </View>
+          </SizableText>
+        </YStack>
       ) : (
         <FlatList
           data={workouts}
           keyExtractor={(item) => item.id}
-          contentContainerClassName="px-4 pb-8 gap-y-3"
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            paddingBottom: 32,
+            gap: 12,
+          }}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => {
             const date = new Date(item.startTime);
@@ -73,67 +77,60 @@ export default function HistoryScreen() {
             return (
               <Pressable
                 onPress={() => router.push(`/session/${item.id}` as never)}
-                className="flex-row items-center rounded-2xl py-4 px-[18px]"
-                style={[{ backgroundColor: c.surface }, CARD_SHADOW]}
+                style={[
+                  {
+                    flexDirection: "row",
+                    alignItems: "center",
+                    borderRadius: 20,
+                    paddingVertical: 16,
+                    paddingHorizontal: 18,
+                    backgroundColor: c.surface,
+                  },
+                  CARD_SHADOW,
+                ]}
                 android_ripple={{ color: "rgba(0,0,0,0.05)" }}
                 accessibilityRole="button"
                 accessibilityLabel={`Open session: ${item.name}`}
               >
-                <View className="flex-1">
-                  <Text
-                    className="text-[15px] font-bold mb-0.5"
-                    style={{ color: c.textPrimary }}
-                    numberOfLines={1}
+                <YStack flex={1}>
+                  <SizableText
+                    size="$4"
+                    fontWeight="700"
+                    marginBottom="$1"
+                    color={c.textPrimary}
                   >
                     {item.name}
-                  </Text>
-                  <Text
-                    className="text-xs mb-1.5"
-                    style={{ color: c.textSecondary }}
-                  >
-                    {date.toLocaleDateString(undefined, {
-                      weekday: "short",
-                      month: "short",
-                      day: "numeric",
-                    })}{" "}
-                    ·{" "}
-                    {date.toLocaleTimeString(undefined, {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </Text>
-                  <View className="flex-row items-center gap-x-2">
-                    <Text
-                      className="text-[13px] font-semibold"
-                      style={{ color: c.primary }}
-                    >
+                  </SizableText>
+                  <XStack alignItems="center" gap="$2">
+                    <SizableText size="$3" fontWeight="600" color={c.primary}>
                       {distKm} km
-                    </Text>
-                    <Text className="text-[13px]" style={{ color: c.border }}>
+                    </SizableText>
+                    <SizableText size="$3" color={c.border}>
                       |
-                    </Text>
-                    <Text
-                      className="text-[13px] font-semibold"
-                      style={{ color: c.textSecondary }}
+                    </SizableText>
+                    <SizableText
+                      size="$3"
+                      fontWeight="600"
+                      color={c.textSecondary}
                     >
                       {formatDuration(item.duration)}
-                    </Text>
-                  </View>
-                </View>
+                    </SizableText>
+                  </XStack>
+                </YStack>
                 <Pressable
                   onPress={() => handleDelete(item.id, item.name)}
                   hitSlop={8}
                   accessibilityRole="button"
                   accessibilityLabel={`Delete session: ${item.name}`}
-                  className="p-1.5 ml-1"
+                  style={{ padding: 6, marginLeft: 4 }}
                 >
-                  <Text className="text-[17px]">{"🗑"}</Text>
+                  <Text style={{ fontSize: 17 }}>{"🗑"}</Text>
                 </Pressable>
               </Pressable>
             );
           }}
         />
       )}
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }

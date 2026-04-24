@@ -1,12 +1,16 @@
-﻿import { Colors } from "@/constants/theme";
+﻿import { BackButton } from "@/components/ui/back-button";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { Colors, MapStyles } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAppStore } from "@/stores/appStore";
 import { useWorkoutStore } from "@/stores/workoutStore";
-import { formatDuration, formatPace } from "@/utils/formatting";
+import { formatDistance, formatDuration, formatPace } from "@/utils/formatting";
 import { router, useLocalSearchParams } from "expo-router";
-import React from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import MapView, { Polyline, PROVIDER_DEFAULT } from "react-native-maps";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SizableText, XStack, YStack } from "tamagui";
 
 const MAP_SHADOW = {
   shadowColor: "#000",
@@ -61,31 +65,39 @@ export default function SessionSummaryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const scheme = useColorScheme();
   const c = Colors[scheme];
+  const { unitSystem } = useAppStore();
   const getWorkout = useWorkoutStore((s) => s.getWorkout);
   const removeWorkout = useWorkoutStore((s) => s.removeWorkout);
   const workout = getWorkout(id);
+  const insets = useSafeAreaInsets();
+  const [discardVisible, setDiscardVisible] = useState(false);
 
   if (!workout) {
     return (
-      <SafeAreaView className="flex-1" style={{ backgroundColor: c.background }}>
-        <View className="flex-1 items-center justify-center">
-          <Text className="text-base mb-4" style={{ color: c.textSecondary }}>
+      <YStack flex={1} backgroundColor={c.background}>
+        <YStack flex={1} alignItems="center" justifyContent="center">
+          <SizableText size="$4" marginBottom="$1" color={c.textSecondary}>
             Session not found.
-          </Text>
+          </SizableText>
           <Pressable
             onPress={() => router.back()}
-            className="px-6 py-3 rounded-full"
-            style={{ backgroundColor: c.primary }}
+            style={{
+              paddingHorizontal: 24,
+              paddingVertical: 12,
+              borderRadius: 20,
+              backgroundColor: c.primary,
+            }}
           >
-            <Text className="text-white font-bold">Go back</Text>
+            <Text style={{ color: "white", fontWeight: "700" }}>Go back</Text>
           </Pressable>
-        </View>
-      </SafeAreaView>
+        </YStack>
+      </YStack>
     );
   }
 
-  const distKm = (workout.distance / 1000).toFixed(2);
-  const pace = workout.avgPace > 0 ? formatPace(workout.avgPace) : "---";
+  const distanceFormatted = formatDistance(workout.distance, unitSystem);
+  const pace =
+    workout.avgPace > 0 ? formatPace(workout.avgPace, unitSystem) : "---";
   const date = new Date(workout.startTime);
   const dateStr = date.toLocaleDateString(undefined, {
     weekday: "long",
@@ -101,63 +113,71 @@ export default function SessionSummaryScreen() {
   const coords = workout.routeCoords ?? [];
   const region = routeRegion(coords);
 
-  const handleDiscard = () => {
-    Alert.alert(
-      "Discard Session",
-      "This run will be permanently deleted. Are you sure?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Discard",
-          style: "destructive",
-          onPress: () => {
-            removeWorkout(id);
-            router.replace("/(tabs)");
-          },
-        },
-      ],
-    );
-  };
+  const handleDiscard = () => setDiscardVisible(true);
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: c.background }}>
-      <View
-        className="flex-row items-center justify-between px-5 py-3.5"
-        style={{
-          backgroundColor: c.surface,
-          borderBottomWidth: StyleSheet.hairlineWidth,
-          borderBottomColor: "#E2E8F0",
+    <YStack flex={1} backgroundColor={c.background}>
+      <ConfirmModal
+        visible={discardVisible}
+        title="Discard Session"
+        message="This run will be permanently deleted. Are you sure?"
+        confirmLabel="Discard"
+        confirmDestructive
+        onCancel={() => setDiscardVisible(false)}
+        onConfirm={() => {
+          removeWorkout(id);
+          router.replace("/(tabs)");
         }}
+        colors={c}
+      />
+      <XStack
+        paddingHorizontal="$5"
+        paddingTop={insets.top + 14}
+        paddingBottom="$3.5"
+        alignItems="center"
+        justifyContent="space-between"
+        backgroundColor={c.surface}
+        borderBottomWidth={StyleSheet.hairlineWidth}
+        borderBottomColor={c.border}
       >
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={12}
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-        >
-          <Text className="text-[22px] font-bold w-8" style={{ color: c.primary }}>{"<"}</Text>
-        </Pressable>
-        <Text className="text-[17px] font-bold" style={{ color: c.textPrimary }}>
+        <BackButton />
+        <SizableText size="$5" fontWeight="700" color={c.textPrimary}>
           Session Summary
-        </Text>
-        <View className="w-8" />
-      </View>
+        </SizableText>
+        <View style={{ width: 36 }} />
+      </XStack>
 
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 48 }}
+        contentContainerStyle={{
+          paddingHorizontal: 24,
+          paddingTop: 24,
+          paddingBottom: 48,
+        }}
         showsVerticalScrollIndicator={false}
       >
-        <Text className="text-[22px] font-extrabold mb-1" style={{ color: c.textPrimary }}>
+        <SizableText
+          size="$7"
+          fontWeight="800"
+          marginBottom="$1"
+          color={c.textPrimary}
+        >
           {workout.name}
-        </Text>
-        <Text className="text-[13px] mb-5" style={{ color: c.textSecondary }}>
+        </SizableText>
+        <SizableText size="$3" marginBottom="$5" color={c.textSecondary}>
           {dateStr} · {timeStr}
-        </Text>
+        </SizableText>
 
         {region != null && coords.length > 1 && (
           <View
-            className="h-[200px] rounded-[20px] overflow-hidden mb-5"
-            style={MAP_SHADOW}
+            style={[
+              {
+                height: 200,
+                borderRadius: 20,
+                overflow: "hidden",
+                marginBottom: 20,
+              },
+              MAP_SHADOW,
+            ]}
           >
             <MapView
               provider={PROVIDER_DEFAULT}
@@ -170,6 +190,9 @@ export default function SessionSummaryScreen() {
               showsMyLocationButton={false}
               showsCompass={false}
               toolbarEnabled={false}
+              customMapStyle={
+                scheme === "dark" ? MapStyles.dark : MapStyles.light
+              }
             >
               <Polyline
                 coordinates={coords}
@@ -180,59 +203,96 @@ export default function SessionSummaryScreen() {
           </View>
         )}
 
-        <View
-          className="items-center py-8 rounded-3xl mb-5"
-          style={[{ backgroundColor: c.surface }, CARD_SHADOW]}
+        <YStack
+          alignItems="center"
+          paddingVertical="$5"
+          borderRadius="$4"
+          marginBottom="$4"
+          backgroundColor={c.surface}
+          style={CARD_SHADOW}
         >
           <Text
-            className="font-black"
-            style={{ fontSize: 72, lineHeight: 80, color: c.primary }}
+            style={{
+              fontSize: 56,
+              lineHeight: 62,
+              fontWeight: "900",
+              color: c.primary,
+            }}
           >
-            {distKm}
+            {distanceFormatted.split(" ")[0]}
           </Text>
-          <Text className="text-base font-semibold mt-1" style={{ color: c.textSecondary }}>
-            kilometres
-          </Text>
-        </View>
+          <SizableText
+            size="$3"
+            fontWeight="600"
+            marginTop="$1"
+            color={c.textSecondary}
+          >
+            {distanceFormatted.split(" ")[1]}
+          </SizableText>
+        </YStack>
 
-        <View className="flex-row flex-wrap gap-3 mb-8">
-          <StatCard label="Duration" value={formatDuration(workout.duration)} c={c} />
+        <XStack flexWrap="wrap" gap="$3" marginBottom="$5">
+          <StatCard
+            label="Duration"
+            value={formatDuration(workout.duration)}
+            c={c}
+          />
           <StatCard label="Avg Pace" value={pace} c={c} />
           <StatCard
             label="Max Speed"
-            value={workout.maxSpeed > 0 ? `${(workout.maxSpeed * 3.6).toFixed(1)} km/h` : "---"}
+            value={
+              workout.maxSpeed > 0
+                ? `${(unitSystem === "imperial" ? workout.maxSpeed * 2.237 : workout.maxSpeed * 3.6).toFixed(1)} ${unitSystem === "imperial" ? "mph" : "km/h"}`
+                : "---"
+            }
             c={c}
           />
-          <StatCard
-            label="Distance"
-            value={`${(workout.distance / 1000).toFixed(2)} km`}
-            c={c}
-          />
-        </View>
+          <StatCard label="Distance" value={distanceFormatted} c={c} />
+        </XStack>
 
         <Pressable
           onPress={() => router.replace("/(tabs)")}
-          className="py-4 rounded-full items-center mb-3"
-          style={[{ backgroundColor: c.primary }, DONE_BTN_SHADOW]}
+          style={[
+            {
+              paddingVertical: 16,
+              borderRadius: 20,
+              alignItems: "center",
+              marginBottom: 12,
+              backgroundColor: c.primary,
+            },
+            DONE_BTN_SHADOW,
+          ]}
           android_ripple={{ color: "rgba(255,255,255,0.2)" }}
           accessibilityRole="button"
         >
-          <Text className="text-white text-base font-extrabold">Save and Done</Text>
+          <Text
+            style={{
+              color: "white",
+              fontSize: 16,
+              fontWeight: "800",
+            }}
+          >
+            Save and Done
+          </Text>
         </Pressable>
 
         <Pressable
           onPress={handleDiscard}
-          className="py-3.5 rounded-full items-center"
+          style={{
+            paddingVertical: 14,
+            borderRadius: 20,
+            alignItems: "center",
+          }}
           android_ripple={{ color: "rgba(239,68,68,0.1)" }}
           accessibilityRole="button"
           accessibilityLabel="Discard session"
         >
-          <Text className="text-sm font-semibold" style={{ color: "#EF4444" }}>
+          <Text style={{ fontSize: 14, fontWeight: "600", color: "#EF4444" }}>
             Discard this run
           </Text>
         </Pressable>
       </ScrollView>
-    </SafeAreaView>
+    </YStack>
   );
 }
 
@@ -246,16 +306,26 @@ function StatCard({
   c: (typeof Colors)["light"];
 }) {
   return (
-    <View
-      className="w-[47%] py-5 px-4 rounded-2xl items-center"
-      style={[{ backgroundColor: c.surface }, STAT_SHADOW]}
+    <YStack
+      width="47%"
+      paddingVertical="$3"
+      paddingHorizontal="$3"
+      borderRadius="$4"
+      alignItems="center"
+      backgroundColor={c.surface}
+      style={STAT_SHADOW}
     >
-      <Text className="text-[22px] font-extrabold mb-1" style={{ color: c.textPrimary }}>
+      <SizableText
+        size="$5"
+        fontWeight="800"
+        marginBottom="$1"
+        color={c.textPrimary}
+      >
         {value}
-      </Text>
-      <Text className="text-xs font-semibold" style={{ color: c.textSecondary }}>
+      </SizableText>
+      <SizableText size="$2" fontWeight="600" color={c.textSecondary}>
         {label}
-      </Text>
-    </View>
+      </SizableText>
+    </YStack>
   );
 }

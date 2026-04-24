@@ -10,8 +10,8 @@ import {
 } from "@react-native-google-signin/google-signin";
 import { router } from "expo-router";
 import React, { useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { ActivityIndicator } from "react-native";
+import { SizableText, YStack } from "tamagui";
 
 // ── Google Sign-In configuration ──────────────────────────────────────────
 // webClientId comes from a "Web application" OAuth client in Google Cloud Console.
@@ -77,68 +77,70 @@ export default function AuthScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.root, { backgroundColor: c.background }]}>
-      <View style={styles.inner}>
-        {/* Branding */}
-        <View style={styles.header}>
-          <Text style={[styles.logo, { color: c.primary }]}>GoStrich</Text>
-          <Text style={[styles.tagline, { color: c.textSecondary }]}>
-            Track every step
-          </Text>
-        </View>
+    <YStack
+      flex={1}
+      backgroundColor={c.background}
+      justifyContent="center"
+      alignItems="center"
+      paddingHorizontal="$8"
+      gap="$8"
+    >
+      {/* Branding */}
+      <YStack alignItems="center" gap="$2">
+        <SizableText
+          size="$10"
+          fontWeight="900"
+          color={c.primary}
+          style={{ letterSpacing: -1 }}
+        >
+          GoStrich
+        </SizableText>
+        <SizableText size="$5" color={c.textSecondary}>
+          Track every step
+        </SizableText>
+      </YStack>
 
-        {/* Error */}
-        {error !== null && (
-          <View
-            style={[styles.errorBanner, { backgroundColor: `${c.danger}18` }]}
+      {/* Error */}
+      {error !== null && (
+        <YStack
+          borderRadius="$3"
+          paddingHorizontal="$4"
+          paddingVertical="$3"
+          alignSelf="stretch"
+          backgroundColor={`${c.danger}18`}
+        >
+          <SizableText
+            size="$3"
+            fontWeight="600"
+            textAlign="center"
+            color={c.danger}
           >
-            <Text style={[styles.errorText, { color: c.danger }]}>{error}</Text>
-          </View>
+            {error}
+          </SizableText>
+        </YStack>
+      )}
+
+      {/* Sign-in buttons */}
+      <YStack alignSelf="stretch" gap="$3" alignItems="center">
+        {loading ? (
+          <ActivityIndicator color={c.primary} size="large" />
+        ) : (
+          <GoogleSigninButton
+            size={GoogleSigninButton.Size.Wide}
+            color={GoogleSigninButton.Color.Dark}
+            onPress={() => void handleSignIn()}
+          />
         )}
+      </YStack>
 
-        {/* Sign-in buttons */}
-        <View style={styles.actions}>
-          {loading ? (
-            <ActivityIndicator color={c.primary} size="large" />
-          ) : (
-            <GoogleSigninButton
-              size={GoogleSigninButton.Size.Wide}
-              color={GoogleSigninButton.Color.Dark}
-              onPress={() => void handleSignIn()}
-            />
-          )}
-        </View>
-
-        <Text style={[styles.disclaimer, { color: c.textSecondary }]}>
-          By continuing you agree to our Terms of Service and Privacy Policy.
-        </Text>
-      </View>
-    </SafeAreaView>
+      <SizableText
+        size="$2"
+        textAlign="center"
+        color={c.textSecondary}
+        style={{ lineHeight: 16 }}
+      >
+        By continuing you agree to our Terms of Service and Privacy Policy.
+      </SizableText>
+    </YStack>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1 },
-  inner: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 32,
-    gap: 32,
-  },
-  header: { alignItems: "center", gap: 8 },
-  logo: { fontSize: 42, fontWeight: "900", letterSpacing: -1 },
-  tagline: { fontSize: 16 },
-
-  errorBanner: {
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    alignSelf: "stretch",
-  },
-  errorText: { fontSize: 13, fontWeight: "600", textAlign: "center" },
-
-  actions: { alignSelf: "stretch", gap: 12, alignItems: "center" },
-
-  disclaimer: { fontSize: 11, textAlign: "center", lineHeight: 16 },
-});

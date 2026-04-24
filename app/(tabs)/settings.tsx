@@ -1,8 +1,8 @@
-import { View, Text, Switch, StyleSheet } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppStore } from "@/stores/appStore";
+import { Switch } from "react-native";
+import { SizableText, XStack, YStack } from "tamagui";
 
 export default function SettingsScreen() {
   const scheme = useColorScheme();
@@ -10,88 +10,101 @@ export default function SettingsScreen() {
   const { darkMode, setDarkMode } = useAppStore();
 
   return (
-    <SafeAreaView style={[styles.root, { backgroundColor: c.background }]}>
-      <View style={styles.content}>
-        <Text style={[styles.title, { color: c.textPrimary }]}>Settings</Text>
-        <Text style={[styles.subtitle, { color: c.textSecondary }]}>
-          App preferences
-        </Text>
+    <YStack
+      flex={1}
+      backgroundColor={c.background}
+      paddingHorizontal="$6"
+      paddingTop="$4"
+    >
+      <SizableText size="$9" fontWeight="800" color={c.textPrimary}>
+        Settings
+      </SizableText>
+      <SizableText
+        size="$3"
+        marginTop="$1"
+        marginBottom="$6"
+        color={c.textSecondary}
+      >
+        App preferences
+      </SizableText>
 
-        <View style={styles.group}>
-          {/* Dark mode */}
-          <View style={[styles.row, { backgroundColor: c.surface, borderColor: c.border }]}>
-            <View>
-              <Text style={[styles.rowLabel, { color: c.textPrimary }]}>
-                Dark Mode
-              </Text>
-              <Text style={[styles.rowSub, { color: c.textSecondary }]}>
-                {darkMode ? "On" : "Off — following system"}
-              </Text>
-            </View>
-            <Switch
-              value={darkMode}
-              onValueChange={setDarkMode}
-              trackColor={{ false: c.border, true: c.primary }}
-              thumbColor="#fff"
-            />
-          </View>
+      <YStack gap="$3">
+        {/* Dark mode */}
+        <XStack
+          borderRadius="$4"
+          padding="$4"
+          backgroundColor={c.surface}
+          borderWidth={1}
+          borderColor={c.border}
+          alignItems="center"
+          justifyContent="space-between"
+        >
+          <YStack>
+            <SizableText size="$4" fontWeight="600" color={c.textPrimary}>
+              Dark Mode
+            </SizableText>
+            <SizableText size="$3" marginTop="$1" color={c.textSecondary}>
+              {darkMode ? "On" : "Off — following system"}
+            </SizableText>
+          </YStack>
+          <Switch
+            value={darkMode}
+            onValueChange={setDarkMode}
+            trackColor={{ false: c.border, true: c.primary }}
+            thumbColor="#fff"
+          />
+        </XStack>
 
-          {/* Unit system */}
-          <View style={[styles.row, { backgroundColor: c.surface, borderColor: c.border }]}>
-            <View>
-              <Text style={[styles.rowLabel, { color: c.textPrimary }]}>
-                Unit System
-              </Text>
-              <Text style={[styles.rowSub, { color: c.textSecondary }]}>
-                Metric (km)
-              </Text>
-            </View>
-          </View>
+        {/* Unit system */}
+        <XStack
+          borderRadius="$4"
+          padding="$4"
+          backgroundColor={c.surface}
+          borderWidth={1}
+          borderColor={c.border}
+          alignItems="center"
+          justifyContent="space-between"
+        >
+          <YStack>
+            <SizableText size="$4" fontWeight="600" color={c.textPrimary}>
+              Unit System
+            </SizableText>
+            <SizableText size="$3" marginTop="$1" color={c.textSecondary}>
+              Metric (km)
+            </SizableText>
+          </YStack>
+        </XStack>
 
-          {/* Map style */}
-          <View style={[styles.row, { backgroundColor: c.surface, borderColor: c.border }]}>
-            <View>
-              <Text style={[styles.rowLabel, { color: c.textPrimary }]}>
-                Map Style
-              </Text>
-              <Text style={[styles.rowSub, { color: c.textSecondary }]}>
-                Standard
-              </Text>
-            </View>
-          </View>
-        </View>
+        {/* Map style */}
+        <XStack
+          borderRadius="$4"
+          padding="$4"
+          backgroundColor={c.surface}
+          borderWidth={1}
+          borderColor={c.border}
+          alignItems="center"
+          justifyContent="space-between"
+        >
+          <YStack>
+            <SizableText size="$4" fontWeight="600" color={c.textPrimary}>
+              Map Style
+            </SizableText>
+            <SizableText size="$3" marginTop="$1" color={c.textSecondary}>
+              Standard
+            </SizableText>
+          </YStack>
+        </XStack>
+      </YStack>
 
-        {/* App info */}
-        <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: c.textSecondary }]}>
-            GoStrich v1.0.0
-          </Text>
-          <Text style={[styles.footerSub, { color: c.border }]}>
-            100% Offline-First
-          </Text>
-        </View>
-      </View>
-    </SafeAreaView>
+      {/* App info */}
+      <YStack marginTop="auto" alignItems="center" paddingBottom="$4">
+        <SizableText size="$3" color={c.textSecondary}>
+          GoStrich v1.0.0
+        </SizableText>
+        <SizableText size="$2" marginTop="$1" color={c.border}>
+          100% Offline-First
+        </SizableText>
+      </YStack>
+    </YStack>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1 },
-  content: { flex: 1, paddingHorizontal: 24, paddingTop: 16 },
-  title: { fontSize: 26, fontWeight: "800" },
-  subtitle: { fontSize: 13, marginTop: 2, marginBottom: 24 },
-  group: { gap: 12 },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-  },
-  rowLabel: { fontSize: 15, fontWeight: "600" },
-  rowSub: { fontSize: 13, marginTop: 2 },
-  footer: { marginTop: "auto", alignItems: "center", paddingBottom: 16 },
-  footerText: { fontSize: 13 },
-  footerSub: { fontSize: 11, marginTop: 4 },
-});

@@ -1,13 +1,23 @@
 import { Link } from "expo-router";
-import { View, Text, StyleSheet } from "react-native";
+import { SizableText, YStack } from "tamagui";
 
 export default function ModalScreen() {
   return (
-    <View className="flex-1 items-center justify-center bg-white p-5">
-      <Text className="text-2xl font-bold text-slate-900">Modal</Text>
-      <Link href="/" dismissTo className="mt-4 py-4">
-        <Text className="text-base text-primary">Go to home screen</Text>
+    <YStack
+      flex={1}
+      alignItems="center"
+      justifyContent="center"
+      backgroundColor="white"
+      padding="$5"
+    >
+      <SizableText size="$7" fontWeight="700" color="#1e293b">
+        Modal
+      </SizableText>
+      <Link href="/" style={{ marginTop: 16, paddingVertical: 16 }}>
+        <SizableText size="$4" color="$primary">
+          Go to home screen
+        </SizableText>
       </Link>
-    </View>
+    </YStack>
   );
 }

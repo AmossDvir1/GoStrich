@@ -1,18 +1,26 @@
 import { Link, Stack } from "expo-router";
-import { View, Text } from "react-native";
+import { SizableText, YStack } from "tamagui";
 
 export default function NotFoundScreen() {
   return (
     <>
       <Stack.Screen options={{ title: "Oops!" }} />
-      <View className="flex-1 items-center justify-center bg-white p-5">
-        <Text className="text-xl font-bold text-slate-900">
+      <YStack
+        flex={1}
+        alignItems="center"
+        justifyContent="center"
+        backgroundColor="white"
+        padding="$5"
+      >
+        <SizableText size="$6" fontWeight="700" color="#1e293b">
           This screen doesn't exist.
-        </Text>
-        <Link href="/" className="mt-4 py-4">
-          <Text className="text-base text-primary">Go to home screen</Text>
+        </SizableText>
+        <Link href="/" style={{ marginTop: 16, paddingVertical: 16 }}>
+          <SizableText size="$4" color="$primary">
+            Go to home screen
+          </SizableText>
         </Link>
-      </View>
+      </YStack>
     </>
   );
 }

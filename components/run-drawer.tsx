@@ -2,7 +2,7 @@
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { RunState } from "@/hooks/use-run-session";
-import { formatDuration } from "@/utils/formatting";
+import { formatDistance, formatDuration } from "@/utils/formatting";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useEffect, useRef } from "react";
 import { LayoutChangeEvent, Pressable, Text, View } from "react-native";
@@ -19,14 +19,14 @@ import Animated, {
 } from "react-native-reanimated";
 
 // ─── constants ────────────────────────────────────────────────────────────────
-const THUMB_SIZE = 80;
+const THUMB_SIZE = 90;
 const TRACK_HEIGHT = 60;
 const TRACK_TOP = (THUMB_SIZE - TRACK_HEIGHT) / 2; // vertical offset to center track
 const OSTRICH_OVERLAP = 28; // px the thumb visually overlaps the track edge
 const THUMB_PAD = THUMB_SIZE - OSTRICH_OVERLAP; // 52 — padding to center labels past thumb
 const END_BTN_WIDTH = 90;
 const SLIDE_THRESHOLD = 0.75; // fraction of max to trigger start
-const SPRING = { damping: 15, stiffness: 450, mass: 0.9 } as const;
+const SPRING = { damping: 23, stiffness: 450, mass: 0.9 } as const;
 
 const THUMB_SHADOW = {
   shadowColor: "#000",
@@ -76,7 +76,9 @@ interface RunDrawerProps {
   runState: RunState;
   elapsed: number;
   distanceKm: number;
+  unitSystem: "metric" | "imperial";
   locationName: string | null;
+  locationReady: boolean;
   onStart: () => void;
   onPause: () => void;
   onResume: () => void;
@@ -88,7 +90,9 @@ export function RunDrawer({
   runState,
   elapsed,
   distanceKm,
+  unitSystem,
   locationName,
+  locationReady,
   onStart,
   onPause,
   onResume,
@@ -131,9 +135,9 @@ export function RunDrawer({
   // Stable wrapper so runOnJS works correctly
   const triggerStart = useCallback(() => onStart(), [onStart]);
 
-  // Pan gesture — only active in idle state
+  // Pan gesture — only active in idle state AND when location is ready
   const panGesture = Gesture.Pan()
-    .enabled(isIdle)
+    .enabled(isIdle && locationReady)
     .activeOffsetX(10) // require intentional horizontal swipe
     .onBegin(() => {
       gestureStartX.value = thumbX.value;
@@ -164,67 +168,111 @@ export function RunDrawer({
   // ── render ──────────────────────────────────────────────────────────────────
   return (
     <>
-      {/* Top section: idle heading OR live metrics */}
-      {isIdle ? (
-        <View>
-          <Text
-            className="text-3xl font-extrabold mb-1"
-            style={{ color: c.textPrimary }}
-          >
-            Ready to run
-          </Text>
-          <View className="flex-row items-center mb-5 min-h-[20px]">
-            {locationName ? (
-              <>
-                <Text className="text-[13px]" style={{ color: c.primary }}>
-                  {"📍 "}
-                </Text>
-                <Text
-                  className="text-[13px]"
-                  style={{ color: c.textSecondary }}
-                >
-                  {locationName}
-                </Text>
-              </>
-            ) : null}
+      {/* Fixed-height top section so the button row never shifts between states */}
+      <View style={{ height: 55, justifyContent: "center", marginBottom: 8 }}>
+        {isIdle ? (
+          /* Location badge */
+          locationName ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 7,
+                paddingHorizontal: 10,
+                paddingVertical: 8,
+                borderRadius: 999,
+                backgroundColor: "rgba(16, 185, 129, 0.1)",
+                alignSelf: "flex-start",
+              }}
+            >
+              {/* Styled map-pin: filled circle + white inner dot */}
+              <View
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: 5,
+                  backgroundColor: c.primary,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <View
+                  style={{
+                    width: 4,
+                    height: 4,
+                    borderRadius: 2,
+                    backgroundColor: "white",
+                  }}
+                />
+              </View>
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: "600",
+                  color: c.textPrimary,
+                }}
+                numberOfLines={1}
+              >
+                {locationName}
+              </Text>
+            </View>
+          ) : null
+        ) : (
+          /* Live metrics */
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <View style={{ flex: 1, alignItems: "center" }}>
+              <Text
+                style={{
+                  fontSize: 32,
+                  fontWeight: "900",
+                  color: c.textPrimary,
+                }}
+              >
+                {formatDuration(elapsed)}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: "600",
+                  marginTop: 2,
+                  color: c.textSecondary,
+                }}
+              >
+                Time
+              </Text>
+            </View>
+            <View
+              style={{
+                width: 1,
+                height: 40,
+                marginHorizontal: 8,
+                backgroundColor: c.border,
+              }}
+            />
+            <View style={{ flex: 1, alignItems: "center" }}>
+              <Text
+                style={{
+                  fontSize: 32,
+                  fontWeight: "900",
+                  color: c.textPrimary,
+                }}
+              >
+                {formatDistance(distanceKm * 1000, unitSystem).split(" ")[0]}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: "600",
+                  marginTop: 2,
+                  color: c.textSecondary,
+                }}
+              >
+                {formatDistance(distanceKm * 1000, unitSystem).split(" ")[1]}
+              </Text>
+            </View>
           </View>
-        </View>
-      ) : (
-        <View className="flex-row items-center mb-4">
-          <View className="flex-1 items-center">
-            <Text
-              className="text-[32px] font-extrabold"
-              style={{ color: c.textPrimary }}
-            >
-              {formatDuration(elapsed)}
-            </Text>
-            <Text
-              className="text-[11px] font-semibold mt-0.5"
-              style={{ color: c.textSecondary }}
-            >
-              Time
-            </Text>
-          </View>
-          <View
-            className="w-px h-10 mx-2"
-            style={{ backgroundColor: c.border }}
-          />
-          <View className="flex-1 items-center">
-            <Text
-              className="text-[32px] font-extrabold"
-              style={{ color: c.textPrimary }}
-            >
-              {distanceKm.toFixed(2)}
-            </Text>
-            <Text
-              className="text-[11px] font-semibold mt-0.5"
-              style={{ color: c.textSecondary }}
-            >
-              km
-            </Text>
-          </View>
-        </View>
-      )}
+        )}
+      </View>
 
       {/* ── Button / slider row ──────────────────────────────────────────────
           The GestureDetector wraps the entire row. RunnerCharacter stays at
@@ -245,7 +293,7 @@ export function RunDrawer({
                 right: 0,
                 height: TRACK_HEIGHT,
                 borderRadius: TRACK_HEIGHT / 2,
-                backgroundColor: c.primary,
+                backgroundColor: locationReady ? c.primary : c.border,
                 justifyContent: "center",
                 alignItems: "center",
                 paddingLeft: THUMB_PAD,
@@ -253,16 +301,18 @@ export function RunDrawer({
                 overflow: "hidden",
               }}
             >
-              <SlideShimmer />
+              {locationReady && <SlideShimmer />}
               <Text
                 style={{
-                  color: "rgba(255,255,255,0.9)",
+                  color: locationReady
+                    ? "rgba(255,255,255,0.9)"
+                    : c.textSecondary,
                   fontSize: 14,
                   fontWeight: "800",
                   letterSpacing: 1.5,
                 }}
               >
-                {"SLIDE TO START  ›"}
+                {locationReady ? "SLIDE TO START  ›" : "WAITING FOR GPS..."}
               </Text>
             </View>
           )}

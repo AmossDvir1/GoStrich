@@ -1,39 +1,92 @@
 # 🏃 GoStrich - Offline-First Running Tracker
 
-A high-performance running tracker app built with React Native + Expo, featuring real-time GPS tracking, live metrics, and local-only data storage (100% offline-first).
+A high-performance running tracker app for iOS and Android, built with React Native 0.81 + Expo 54, featuring real-time GPS tracking, live metrics, and 100% on-device data storage (offline-first).
 
-## 🎯 Project Status
+**Status**: ✅ MVP Complete (Phases 1-4)
 
-**Current Phase**: Phase 1 ✅ Complete (Setup & Navigation)
+---
 
-- ✅ Expo project initialized
-- ✅ React Navigation (tab-based)
-- ✅ TypeScript strict mode
-- ✅ Zustand state management
-- ✅ Tailwind CSS styling
-- 🔄 Phase 2: Map & UI Components (coming next)
+## 🎯 Features
+
+- ✅ **Google Sign-In** - Secure authentication with encrypted session
+- ✅ **Live GPS Tracking** - Real-time location updates (foreground only, 1 sec / 2 m intervals)
+- ✅ **Real-time Metrics** - Distance (Haversine), pace, duration calculated live
+- ✅ **Interactive Maps** - Google Maps with live polyline route
+- ✅ **Workout History** - View and delete past sessions
+- ✅ **Session Summary** - Post-run stats screen with map replay
+- ✅ **User Profile** - Name, weight, height, photo management
+- ✅ **Dark Mode** - Automatic + manual toggle
+- ✅ **Unit System** - Metric/Imperial toggle
+- ✅ **Mascot Animation** - Rive ostrich character
+
+---
+
+## 🛠 Technology Stack
+
+| Layer | Tech | Version |
+|-------|------|---------|
+| **Framework** | React Native + Expo | 0.81 / 54 |
+| **Language** | TypeScript | 5.9 |
+| **State** | Zustand | 5.0 |
+| **Storage** | AsyncStorage + SecureStore | 2.2 / 15.0 |
+| **Location** | expo-location | 19.0 |
+| **Maps** | react-native-maps | 1.20 |
+| **Styling** | NativeWind | 4.1 |
+| **Auth** | Google Sign-In | 16.1 |
+| **Animation** | Rive + React Native Reanimated | 9.8 / 4.1 |
+
+**See [TECH_STACK.md](.github/TECH_STACK.md)** for comprehensive dependency breakdown.
+
+---
 
 ## 📁 Project Structure
 
 ```
-src/
-├── App.tsx                    # Root component
-├── screens/                   # Screen components
-│   ├── HomeScreen.tsx        # Active run tracking
-│   ├── HistoryScreen.tsx     # Workout history
-│   ├── SettingsScreen.tsx    # App settings
-│   └── WorkoutDetailScreen.tsx
-├── components/
-│   └── navigation/            # Navigation setup
-├── types/                     # TypeScript types
-├── stores/                    # Zustand stores
-├── hooks/                     # Custom React hooks
-├── services/                  # Business logic (Phase 2+)
-├── utils/                     # Utility functions
-└── database/                  # Database setup (Phase 5)
+app/                      # Expo Router (file-based navigation)
+├── _layout.tsx           # Root layout + auth guard
+├── auth.tsx              # Google Sign-In screen
+├── profile.tsx           # Profile settings
+├── (tabs)/
+│   ├── index.tsx         # Home/Run screen (live map)
+│   ├── history.tsx       # Workout history list
+│   └── settings.tsx      # App settings
+└── session/[id].tsx      # Post-run summary
+
+components/               # Reusable UI components
+├── run-drawer.tsx        # Live metrics HUD
+└── ui/                   # Icon, character components
+
+hooks/
+├── use-run-session.ts    # Core tracking engine
+├── use-location.ts       # Permission handling
+└── use-color-scheme.ts   # Theme detection
+
+stores/                   # Zustand stores
+├── authStore.ts          # Google Sign-In session
+├── profileStore.ts       # User profile
+├── workoutStore.ts       # Workout history
+├── appStore.ts           # Settings
+└── trackingStore.ts      # Active run state
+
+services/                 # Business logic
+├── gps/                  # GPS service
+├── tracking/             # Tracking logic
+└── workout/              # Persistence
+
+types/                    # TypeScript interfaces
+constants/                # Theme colors
+utils/                    # Formatting helpers
+assets/                   # Images, ostrich.riv
 ```
 
+---
+
 ## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 18+ (LTS recommended)
+- npm or yarn
+- Expo CLI (optional, uses npx)
 
 ### Installation
 
@@ -41,62 +94,200 @@ src/
 npm install
 ```
 
+### Environment Setup
+
+Create `.env` file:
+```bash
+EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=<your-google-client-id>.apps.googleusercontent.com
+```
+
+Get your Google Client ID:
+1. Go to [Google Cloud Console](https://console.cloud.google.com)
+2. Create OAuth 2.0 Client ID (Android/iOS)
+3. Copy the ID to `.env`
+
 ### Running Locally
 
+#### Start Dev Server
 ```bash
 npm start
 ```
 
-Then choose your platform:
-- **Press `w`** → Web browser (easiest on Windows)
-- **Press `i`** → iOS simulator
-- **Press `a`** → Android emulator
-
-### Running on Your Phone
-
-#### Option 1: Scan QR Code (Recommended)
-1. Download **Expo Go** app:
-   - [iOS App Store](https://apps.apple.com/app/expo-go/id982107779)
-   - [Google Play](https://play.google.com/store/apps/details?id=host.exp.exponent)
-2. Keep terminal running: `npm start`
-3. Open Expo Go app and **scan the QR code** shown in terminal
-4. App loads on your phone! 📱
-
-#### Option 2: Same WiFi (Android)
-1. Phone on same WiFi as computer
-2. Run: `npm start`
-3. Press `a` in terminal
-4. App opens on Android device
-
-#### Option 3: Tunnel (Works Anywhere)
+#### Run on Web (Easiest - Windows/Mac/Linux)
 ```bash
-npm start -- --tunnel
+npm run web
+# Or press 'w' in the dev server terminal
 ```
-Creates remote tunnel - works even without same WiFi
+
+#### Run on iOS Simulator
+```bash
+npm run ios
+```
+
+#### Run on Android Emulator
+```bash
+npm run android
+```
+
+#### Run on Physical Device
+1. Install **Expo Go** from App Store / Play Store
+2. Keep dev server running: `npm start`
+3. Scan QR code with Expo Go app
+4. App loads on your phone 📱
+
+---
 
 ## 📝 Available Scripts
 
 ```bash
 npm start              # Start dev server
-npm run android        # Open Android emulator
-npm run ios           # Open iOS simulator
-npm run web           # Open web browser
-npm run type-check    # Check TypeScript errors
-npm run lint          # Run ESLint
-npm test              # Run tests
-npm test:watch        # Run tests in watch mode
+npm run web           # Web browser (port 8081)
+npm run ios           # iOS simulator
+npm run android       # Android emulator
+npm run lint          # ESLint check
+npm run type-check    # TypeScript check (via expo)
 ```
 
-## 🎨 Technology Stack
+---
 
-- **Framework**: React Native + Expo
-- **Language**: TypeScript (strict mode)
-- **State**: Zustand
-- **Styling**: Tailwind CSS (react-native-tailwindcss)
-- **Navigation**: React Navigation 6
-- **Maps**: react-native-maps (Phase 2+)
-- **GPS**: expo-location (Phase 3)
-- **Database**: WatermelonDB (Phase 5)
+## 🏗 Architecture
+
+### Run Lifecycle
+
+```
+idle → [START] → running → [PAUSE] → paused
+                              ↓ [RESUME]
+                            running
+                              ↓ [STOP]
+                          Save workout → Session summary
+```
+
+### State Management
+
+| Store | Backend | Scope | Persistence |
+|-------|---------|-------|-------------|
+| `authStore` | SecureStore | Encrypted | Encrypted key/value |
+| `profileStore` | SecureStore | Encrypted | Encrypted key/value |
+| `workoutStore` | AsyncStorage | Local | Summary only (GPS points stripped) |
+| `appStore` | In-memory | Runtime | Settings lost on restart |
+| `trackingStore` | In-memory | Runtime | Active run only |
+
+### GPS Tracking
+
+- **Permission**: Foreground location (iOS & Android)
+- **Accuracy**: `BestForNavigation`
+- **Interval**: 1 second / 2 meter accuracy threshold
+- **Distance**: Haversine formula (accounts for Earth curvature)
+- **Filtering**: Rejects speed > 50 km/h, accuracy > 100m
+
+### Storage
+
+- **Full Workouts**: Kept in-memory during session for real-time map
+- **Workout Summaries**: Persisted to AsyncStorage (GPS points stripped to save space)
+- **Auth/Profile**: SecureStore (encrypted, survives app restart)
+
+---
+
+## 🎨 Styling
+
+### NativeWind + Tailwind CSS
+
+```typescript
+// Static layout
+<View className="flex-1 gap-4 p-4" />
+
+// Dynamic colors
+<View style={{ backgroundColor: Colors[scheme].background }} />
+
+// Combined
+<Text className="text-lg font-bold dark:text-white">Distance</Text>
+```
+
+See [tailwind-css.instructions.md](.github/instructions/tailwind-css.instructions.md) for styling guidelines.
+
+---
+
+## 📱 Platform Support
+
+| Platform | Status | Notes |
+|----------|--------|-------|
+| **iOS** | ✅ Tested | iOS 14+ required for Google Sign-In |
+| **Android** | ✅ Tested | Android 6+ (API 23+) required |
+| **Web** | ✅ Works | Limited (no GPS, maps use web backend) |
+
+---
+
+## 🔐 Security & Privacy
+
+- ✅ **100% Offline** - No data leaves your device
+- ✅ **Encrypted Auth** - Session stored in SecureStore (encrypted)
+- ✅ **No Backend** - No server = no data breach
+- ✅ **No Tracking** - No analytics, no telemetry
+- ✅ **Open Storage** - All data in local AsyncStorage (user can view/export)
+
+---
+
+## 📚 Documentation
+
+| Document | Purpose |
+|----------|---------|
+| [TECH_STACK.md](.github/TECH_STACK.md) | Comprehensive tech stack breakdown |
+| [TECHNICAL_PLAN.md](.github/TECHNICAL_PLAN.md) | Architecture, algorithms, data flow |
+| [QUICK_REFERENCE.md](.github/QUICK_REFERENCE.md) | Quick lookup for developers |
+| [LOGIC_FLOW.md](.github/LOGIC_FLOW.md) | Data flow diagrams |
+
+---
+
+## 🚦 Current Status
+
+### ✅ Completed (MVP)
+
+| Phase | Feature |
+|-------|---------|
+| 1 | Setup & Navigation |
+| 2 | Map & UI Components |
+| 3 | Location Permissions & GPS |
+| 4 | Tracking Engine & Calculations |
+
+### 🔄 Future Enhancements
+
+- Background GPS tracking (requires foreground service)
+- Analytics dashboard (aggregated stats, streaks)
+- Social features (share runs via QR code)
+- Data export (CSV, GPX formats)
+- Offline map tiles
+- Elevation profiles
+
+---
+
+## 🐛 Common Issues
+
+### **Map not rendering on Android**
+- Ensure Google Maps API key is set in app.json
+- SHA-1 fingerprint must be registered in Google Cloud Console
+
+### **GPS not updating in simulator**
+- Xcode: Features → Location → Simulate a route
+- Or test on physical device
+
+### **Google Sign-In fails**
+- Check `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` in `.env`
+- Ensure correct bundle ID / package name in Google Cloud Console
+
+---
+
+## 📄 License
+
+Private project. All rights reserved.
+
+---
+
+## 🙋 Support
+
+For questions or issues:
+1. Check [QUICK_REFERENCE.md](.github/QUICK_REFERENCE.md)
+2. Review [TECHNICAL_PLAN.md](.github/TECHNICAL_PLAN.md)
+3. Check console logs with `npm start`
 
 ## 📱 App Features
 
