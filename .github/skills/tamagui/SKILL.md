@@ -4,7 +4,7 @@ description: Universal React + React Native UI library with optimizing compiler.
 license: MIT
 metadata:
   author: ai-standards
-  version: '1.0'
+  version: "1.0"
   language: typescript
   frameworks: react, react-native, next, expo, vite
 compatibility: React 18+, React Native 0.71+
@@ -37,7 +37,7 @@ Direct links to implementation code in the monorepo.
 
 | Area             | Description                          | URL                                                          |
 | ---------------- | ------------------------------------ | ------------------------------------------------------------ |
-| Repository       | Main monorepo with all packages      | <https://github.com/tamagui/tamagui>                         |
+| Repository       | Main monorepo with all packages      | <https://github.com/tamagui>                                 |
 | UI Components    | 50+ themed, accessible components    | <https://github.com/tamagui/tamagui/tree/main/code/ui>       |
 | Core Packages    | Styling engine, themes, hooks, fonts | <https://github.com/tamagui/tamagui/tree/main/code/core>     |
 | Compiler Plugins | Bundler plugins for style extraction | <https://github.com/tamagui/tamagui/tree/main/code/compiler> |
@@ -60,3 +60,4 @@ Detailed reference files with component and API documentation.
 - `references/components.md` - UI component library with docs and source links
 - `references/core.md` - Core packages, configuration APIs, and hooks
 - `references/compiler.md` - Bundler plugins and optimization setup
+- `references/lucide-icons.md` - Implementation guide for Lucide icons with Tamagui

@@ -1,0 +1,44 @@
+---
+title: Lucide Icons
+description: Cross-platform compatible SVG-based icons
+name: lucide-icons
+component: LucideIcons
+package: lucide-icons
+demoName: LucideIcons
+---
+
+<HeroContainer noPad>
+  <LucideIconsDemo />
+</HeroContainer>
+
+## Installation
+
+```sh
+yarn add react-native-svg @tamagui/lucide-icons-2
+```
+
+<Notice>
+  If you're using icons in a monorepo, install `react-native-svg` in the parent
+  app or workspace root rather than a leaf package.
+</Notice>
+
+## Usage
+
+Use them as regular React components:
+
+```tsx
+import { Button } from "tamagui";
+import { Plus } from "@tamagui/lucide-icons-2";
+
+// Button will automatically pass size/theme to icon
+export default () => <Button icon={Plus}>Hello world</Button>;
+
+// or you can control it
+export default () => <Button icon={<Plus size="$4" />}>Hello world</Button>;
+```
+
+They accept your tokens/theme keys for color and size.
+
+## Credit
+
+The great [Lucide Icons](https://lucide.dev/), a superset of the wonderful [Feather Icons](https://feathericons.com/).

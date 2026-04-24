@@ -2,36 +2,70 @@ import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuthStore } from "@/stores/authStore";
 import { useProfileStore } from "@/stores/profileStore";
-import {
-  GoogleSignin,
-  GoogleSigninButton,
-  isErrorWithCode,
-  statusCodes,
-} from "@react-native-google-signin/google-signin";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ActivityIndicator } from "react-native";
-import { SizableText, YStack } from "tamagui";
+import { Button, SizableText, YStack } from "tamagui";
 
-// ── Google Sign-In configuration ──────────────────────────────────────────
-// webClientId comes from a "Web application" OAuth client in Google Cloud Console.
-// It is needed so Google can return a proper ID token.
-// Create one at: https://console.cloud.google.com → APIs & Services → Credentials
-// → Create Credentials → OAuth client ID → Web application → Save the Client ID
-// Then add to .env:  EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=xxxx.apps.googleusercontent.com
-GoogleSignin.configure({
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? "",
-  offlineAccess: false,
-});
+type GoogleSigninModule =
+  typeof import("@react-native-google-signin/google-signin");
 
 export default function AuthScreen() {
   const scheme = useColorScheme();
   const c = Colors[scheme];
   const { loginWithGoogle } = useAuthStore();
+  const [googleSigninModule, setGoogleSigninModule] =
+    useState<GoogleSigninModule | null>(null);
+  const [isSigninModuleReady, setIsSigninModuleReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    let mounted = true;
+
+    const loadGoogleSignin = async () => {
+      try {
+        const mod = await import("@react-native-google-signin/google-signin");
+        if (!mounted) {
+          return;
+        }
+
+        // webClientId comes from a "Web application" OAuth client in Google Cloud Console.
+        // It is needed so Google can return a proper ID token.
+        mod.GoogleSignin.configure({
+          webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? "",
+          offlineAccess: false,
+        });
+        setGoogleSigninModule(mod);
+      } catch {
+        if (!mounted) {
+          return;
+        }
+        setGoogleSigninModule(null);
+      } finally {
+        if (mounted) {
+          setIsSigninModuleReady(true);
+        }
+      }
+    };
+
+    void loadGoogleSignin();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const handleSignIn = async () => {
+    if (!googleSigninModule) {
+      setError(
+        "Google Sign-In native module is unavailable in this build. Rebuild the app after installing native dependencies.",
+      );
+      return;
+    }
+
+    const { GoogleSignin, isErrorWithCode, statusCodes } = googleSigninModule;
+
     setError(null);
     setLoading(true);
     try {
@@ -88,7 +122,7 @@ export default function AuthScreen() {
       {/* Branding */}
       <YStack alignItems="center" gap="$2">
         <SizableText
-          size="$10"
+          size={10}
           fontWeight="900"
           color={c.primary}
           style={{ letterSpacing: -1 }}
@@ -124,12 +158,25 @@ export default function AuthScreen() {
       <YStack alignSelf="stretch" gap="$3" alignItems="center">
         {loading ? (
           <ActivityIndicator color={c.primary} size="large" />
-        ) : (
-          <GoogleSigninButton
-            size={GoogleSigninButton.Size.Wide}
-            color={GoogleSigninButton.Color.Dark}
+        ) : !isSigninModuleReady ? (
+          <ActivityIndicator color={c.primary} size="small" />
+        ) : googleSigninModule ? (
+          <googleSigninModule.GoogleSigninButton
+            size={googleSigninModule.GoogleSigninButton.Size.Wide}
+            color={googleSigninModule.GoogleSigninButton.Color.Dark}
             onPress={() => void handleSignIn()}
           />
+        ) : (
+          <Button
+            disabled
+            width="100%"
+            maxWidth={320}
+            backgroundColor={c.surface}
+          >
+            <SizableText size="$4" color={c.textSecondary}>
+              Google Sign-In unavailable
+            </SizableText>
+          </Button>
         )}
       </YStack>
 

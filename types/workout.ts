@@ -8,6 +8,18 @@ export interface GpsPoint {
   timestamp: number;
 }
 
+export interface SpeedPoint {
+  /** Milliseconds since run start (relative timeline for charts). */
+  t: number;
+  /** Raw speed from location updates in meters per second. */
+  speedMps: number | null;
+}
+
+export interface PauseInterval {
+  startMs: number;
+  endMs: number;
+}
+
 export interface Workout {
   id: string;
   name: string;
@@ -19,6 +31,8 @@ export interface Workout {
   avgPace: number;
   maxSpeed: number;
   gpsPoints: GpsPoint[];
+  speedSeries?: SpeedPoint[];
+  pauseIntervals?: PauseInterval[];
   /** Downsampled lat/lon pairs used for map display — stored in WorkoutSummary */
   routeCoords: { latitude: number; longitude: number }[];
   pausedDuration: number;

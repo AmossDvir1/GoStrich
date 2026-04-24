@@ -43,6 +43,46 @@ const montserratFont = createFont({
   },
 });
 
+const kohoFont = createFont({
+  family: "KoHo-Regular",
+  size: {
+    1: 12,
+    2: 14,
+    3: 15,
+    4: 16,
+    true: 16,
+    5: 18,
+    6: 20,
+    7: 24,
+    8: 28,
+    9: 32,
+  },
+  lineHeight: { 1: 17, 2: 19, 4: 22, 6: 26, 9: 38 },
+  weight: {
+    1: "300",
+    2: "300",
+    3: "300",
+    4: "400",
+    5: "500",
+    6: "600",
+    7: "700",
+    8: "700",
+    9: "700",
+  },
+  letterSpacing: { 4: 0, 8: -1 },
+  face: {
+    300: { normal: "KoHo-Light", italic: "KoHo-LightItalic" },
+    400: { normal: "KoHo-Regular", italic: "KoHo-Italic" },
+    500: { normal: "KoHo-Medium", italic: "KoHo-MediumItalic" },
+    600: { normal: "KoHo-SemiBold", italic: "KoHo-SemiBoldItalic" },
+    700: { normal: "KoHo-Bold", italic: "KoHo-BoldItalic" },
+  },
+});
+
+// Select active font based on environment variable (default: Montserrat)
+const activeFont =
+  process.env.EXPO_PUBLIC_ACTIVE_FONT === "koho" ? kohoFont : montserratFont;
+
 // ─── Animations ───────────────────────────────────────────────────────────────
 // "snap" mirrors the SNAP_SPRING constant removed from HomeScreen
 const animations = createAnimations({
@@ -200,8 +240,8 @@ export const tamaguiConfig = createTamagui({
     dark: darkTheme,
   },
   fonts: {
-    heading: montserratFont,
-    body: montserratFont,
+    heading: activeFont,
+    body: activeFont,
   },
   media: defaultConfig.media,
   shorthands: defaultConfig.shorthands,

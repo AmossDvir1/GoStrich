@@ -1,19 +1,22 @@
-﻿import { STORY_HEIGHT, STORY_WIDTH, StoryCard } from "@/components/story-card";
+﻿import { SessionSpeedChart } from "@/components/session-speed-chart";
+import { STORY_HEIGHT, STORY_WIDTH, StoryCard } from "@/components/story-card";
 import { BackButton } from "@/components/ui/back-button";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { Colors, MapStyles } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { shareSessionAsStory } from "@/services/sharing";
 import { useAppStore } from "@/stores/appStore";
+import { useProfileStore } from "@/stores/profileStore";
 import { useWorkoutStore } from "@/stores/workoutStore";
 import { formatDistance, formatDuration, formatPace } from "@/utils/formatting";
+import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useRef, useState } from "react";
 import type { View } from "react-native";
 import { ActivityIndicator, Pressable, ScrollView } from "react-native";
 import MapView, { Polyline, PROVIDER_DEFAULT } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { SizableText, XStack, YStack } from "tamagui";
+import { Popover, SizableText, XStack, YStack } from "tamagui";
 
 const MAP_SHADOW = {
   shadowColor: "#000",
@@ -65,10 +68,12 @@ function routeRegion(coords: { latitude: number; longitude: number }[]) {
 }
 
 export default function SessionSummaryScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, isNew } = useLocalSearchParams<{ id: string; isNew?: string }>();
+  const isNewSession = isNew === "1";
   const scheme = useColorScheme();
   const c = Colors[scheme];
   const { unitSystem } = useAppStore();
+  const weightKg = useProfileStore((s) => s.profile.weightKg);
   const getWorkout = useWorkoutStore((s) => s.getWorkout);
   const removeWorkout = useWorkoutStore((s) => s.removeWorkout);
   const workout = getWorkout(id);
@@ -148,18 +153,39 @@ export default function SessionSummaryScreen() {
       <XStack
         paddingHorizontal="$5"
         paddingTop={insets.top + 14}
-        paddingBottom="$3.5"
+        paddingBottom="$5"
         alignItems="center"
         justifyContent="space-between"
         backgroundColor={c.surface}
-        borderBottomWidth={0.5}
-        borderBottomColor={c.border}
+        shadowColor="#000"
+        shadowOpacity={0.08}
+        shadowRadius={8}
+        shadowOffset={{ width: 0, height: 3 }}
+        elevation={4}
       >
-        <BackButton />
+        <BackButton size={30} />
         <SizableText size="$5" fontWeight="700" color={c.textPrimary}>
           Session Summary
         </SizableText>
-        <XStack width={36} />
+        <Pressable
+          onPress={handleShare}
+          disabled={isSharing}
+          style={{
+            width: 30,
+            height: 30,
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: isSharing ? 0.5 : 1,
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Share session as Instagram Story"
+        >
+          {isSharing ? (
+            <ActivityIndicator size="small" color={c.primary} />
+          ) : (
+            <Ionicons name="share-outline" size={26} color={c.primary} />
+          )}
+        </Pressable>
       </XStack>
 
       <ScrollView
@@ -220,6 +246,12 @@ export default function SessionSummaryScreen() {
           </YStack>
         )}
 
+        <SessionSpeedChart
+          speedSeries={workout.speedSeries}
+          pauseIntervals={workout.pauseIntervals}
+          unitSystem={unitSystem}
+        />
+
         <YStack
           alignItems="center"
           paddingVertical="$5"
@@ -262,7 +294,20 @@ export default function SessionSummaryScreen() {
             }
             c={c}
           />
-          <StatCard label="Distance" value={distanceFormatted} c={c} />
+          <StatCard
+            label="Calories"
+            value={
+              weightKg != null
+                ? `${Math.round((workout.distance / 1000) * weightKg * 1.036)} kcal`
+                : "--"
+            }
+            warning={
+              weightKg == null
+                ? "Set your weight in Profile to see calories burned"
+                : undefined
+            }
+            c={c}
+          />
         </XStack>
 
         <Pressable
@@ -274,6 +319,7 @@ export default function SessionSummaryScreen() {
               alignItems: "center",
               marginBottom: 12,
               backgroundColor: c.primary,
+              display: isNewSession ? "flex" : "none",
             },
             DONE_BTN_SHADOW,
           ]}
@@ -282,37 +328,6 @@ export default function SessionSummaryScreen() {
         >
           <SizableText color="white" fontWeight="800" size="$5">
             Save and Done
-          </SizableText>
-        </Pressable>
-
-        <Pressable
-          onPress={handleShare}
-          disabled={isSharing}
-          style={[
-            {
-              paddingVertical: 15,
-              borderRadius: 20,
-              alignItems: "center",
-              marginBottom: 12,
-              flexDirection: "row",
-              justifyContent: "center",
-              gap: 8,
-              borderWidth: 1.5,
-              borderColor: c.primary,
-              opacity: isSharing ? 0.6 : 1,
-            },
-          ]}
-          android_ripple={{ color: "rgba(16,185,129,0.1)" }}
-          accessibilityRole="button"
-          accessibilityLabel="Share session as Instagram Story"
-        >
-          {isSharing ? (
-            <ActivityIndicator size="small" color={c.primary} />
-          ) : (
-            <SizableText fontSize={16}>📤</SizableText>
-          )}
-          <SizableText color={c.primary} fontWeight="700" size="$4">
-            {isSharing ? "Preparing…" : "Share to Instagram Story"}
           </SizableText>
         </Pressable>
 
@@ -328,7 +343,7 @@ export default function SessionSummaryScreen() {
           accessibilityLabel="Discard session"
         >
           <SizableText size="$3" fontWeight="600" color={c.danger}>
-            Discard this run
+            {isNewSession ? "Discard this run" : "Delete this run"}
           </SizableText>
         </Pressable>
       </ScrollView>
@@ -357,10 +372,12 @@ function StatCard({
   label,
   value,
   c,
+  warning,
 }: {
   label: string;
   value: string;
   c: (typeof Colors)["light"];
+  warning?: string;
 }) {
   return (
     <YStack
@@ -383,6 +400,50 @@ function StatCard({
       <SizableText size="$2" fontWeight="600" color={c.textSecondary}>
         {label}
       </SizableText>
+      {warning != null && (
+        <Popover placement="top" allowFlip>
+          <Popover.Trigger asChild>
+            <Pressable
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Calories info"
+              style={{
+                position: "absolute",
+                top: 6,
+                right: 6,
+                width: 16,
+                height: 16,
+                borderRadius: 8,
+                borderWidth: 1.5,
+                borderColor: "#F59E0B",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <SizableText
+                size="$1"
+                fontWeight="800"
+                color="#F59E0B"
+                lineHeight={12}
+              >
+                !
+              </SizableText>
+            </Pressable>
+          </Popover.Trigger>
+          <Popover.Content
+            borderWidth={1}
+            borderColor="#F59E0B"
+            backgroundColor={c.surface}
+            padding="$3"
+            borderRadius="$3"
+            maxWidth={200}
+          >
+            <SizableText size="$2" color="#F59E0B" textAlign="center">
+              {warning}
+            </SizableText>
+          </Popover.Content>
+        </Popover>
+      )}
     </YStack>
   );
 }

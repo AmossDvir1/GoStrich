@@ -47,6 +47,8 @@ export function useRunSession(
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const gpsWatchRef = useRef<Location.LocationSubscription | null>(null);
   const gpsPointsRef = useRef<GpsPoint[]>([]);
+  const pauseStartRef = useRef<number | null>(null);
+  const pauseIntervalsRef = useRef<{ startMs: number; endMs: number }[]>([]);
   const distanceRef = useRef(0);
   const startTimeRef = useRef<number>(0);
 
@@ -107,6 +109,8 @@ export function useRunSession(
 
   const handleStart = useCallback(async () => {
     gpsPointsRef.current = [];
+    pauseStartRef.current = null;
+    pauseIntervalsRef.current = [];
     setRouteCoords([]);
     distanceRef.current = 0;
     setDistanceKm(0);
@@ -118,12 +122,20 @@ export function useRunSession(
   }, [startTimer, startGpsWatch]);
 
   const handlePause = useCallback(() => {
+    pauseStartRef.current = Date.now();
     setRunState("paused");
     stopTimer();
     stopGpsWatch();
   }, [stopTimer, stopGpsWatch]);
 
   const handleResume = useCallback(async () => {
+    if (pauseStartRef.current != null) {
+      pauseIntervalsRef.current.push({
+        startMs: pauseStartRef.current - startTimeRef.current,
+        endMs: Date.now() - startTimeRef.current,
+      });
+      pauseStartRef.current = null;
+    }
     setRunState("running");
     startTimer();
     await startGpsWatch();
@@ -134,7 +146,24 @@ export function useRunSession(
     stopGpsWatch();
 
     const endTime = Date.now();
+    if (pauseStartRef.current != null) {
+      pauseIntervalsRef.current.push({
+        startMs: pauseStartRef.current - startTimeRef.current,
+        endMs: endTime - startTimeRef.current,
+      });
+      pauseStartRef.current = null;
+    }
+
     const points = gpsPointsRef.current;
+    const speedSeries = points.map((point) => ({
+      t: point.timestamp - startTimeRef.current,
+      speedMps: point.speed,
+    }));
+    const pauseIntervals = pauseIntervalsRef.current;
+    const pausedDurationMs = pauseIntervals.reduce(
+      (sum, interval) => sum + Math.max(0, interval.endMs - interval.startMs),
+      0,
+    );
     const distM = distanceRef.current * 1000;
     const elapsedSnap = elapsed;
     const avgPace =
@@ -160,11 +189,13 @@ export function useRunSession(
       avgPace,
       maxSpeed,
       gpsPoints: points,
+      speedSeries,
+      pauseIntervals,
       routeCoords: points.map((p) => ({
         latitude: p.latitude,
         longitude: p.longitude,
       })),
-      pausedDuration: 0,
+      pausedDuration: Math.round(pausedDurationMs / 1000),
       createdAt: endTime,
       updatedAt: endTime,
     });
@@ -174,9 +205,10 @@ export function useRunSession(
     setDistanceKm(0);
     setRouteCoords([]);
     gpsPointsRef.current = [];
+    pauseIntervalsRef.current = [];
     distanceRef.current = 0;
 
-    router.push(`/session/${id}` as never);
+    router.push(`/session/${id}?isNew=1` as never);
   }, [stopTimer, stopGpsWatch, elapsed, locationName, addWorkout]);
 
   return {

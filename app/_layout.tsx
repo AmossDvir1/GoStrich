@@ -15,7 +15,7 @@ import { TamaguiProvider, YStack } from "tamagui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuthStore } from "@/stores/authStore";
 import { useProfileStore } from "@/stores/profileStore";
-import tamaguiConfig from "../tamagui.config";
+import appTamaguiConfig from "../tamagui.config";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -31,6 +31,7 @@ export default function RootLayout() {
   const hydrateProfile = useProfileStore((s) => s.hydrate);
 
   const [fontsLoaded, fontError] = useFonts({
+    // Montserrat fonts
     "Montserrat-Thin": require("../assets/fonts/Montserrat/Montserrat-Thin.ttf"),
     "Montserrat-ExtraLight": require("../assets/fonts/Montserrat/Montserrat-ExtraLight.ttf"),
     "Montserrat-Light": require("../assets/fonts/Montserrat/Montserrat-Light.ttf"),
@@ -41,6 +42,17 @@ export default function RootLayout() {
     "Montserrat-Bold": require("../assets/fonts/Montserrat/Montserrat-Bold.ttf"),
     "Montserrat-ExtraBold": require("../assets/fonts/Montserrat/Montserrat-ExtraBold.ttf"),
     "Montserrat-Black": require("../assets/fonts/Montserrat/Montserrat-Black.ttf"),
+    // KoHo fonts
+    "KoHo-Light": require("../assets/fonts/KoHo/KoHo-Light.ttf"),
+    "KoHo-LightItalic": require("../assets/fonts/KoHo/KoHo-LightItalic.ttf"),
+    "KoHo-Regular": require("../assets/fonts/KoHo/KoHo-Regular.ttf"),
+    "KoHo-Italic": require("../assets/fonts/KoHo/KoHo-Italic.ttf"),
+    "KoHo-Medium": require("../assets/fonts/KoHo/KoHo-Medium.ttf"),
+    "KoHo-MediumItalic": require("../assets/fonts/KoHo/KoHo-MediumItalic.ttf"),
+    "KoHo-SemiBold": require("../assets/fonts/KoHo/KoHo-SemiBold.ttf"),
+    "KoHo-SemiBoldItalic": require("../assets/fonts/KoHo/KoHo-SemiBoldItalic.ttf"),
+    "KoHo-Bold": require("../assets/fonts/KoHo/KoHo-Bold.ttf"),
+    "KoHo-BoldItalic": require("../assets/fonts/KoHo/KoHo-BoldItalic.ttf"),
   });
 
   useEffect(() => {
@@ -60,7 +72,7 @@ export default function RootLayout() {
 
   return (
     <TamaguiProvider
-      config={tamaguiConfig}
+      config={appTamaguiConfig}
       defaultTheme={colorScheme ?? "light"}
     >
       <GestureHandlerRootView style={{ flex: 1 }}>

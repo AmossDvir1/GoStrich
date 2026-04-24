@@ -25390,7 +25390,7 @@
   "tamaguiConfig": {
     "fonts": {
       "heading": {
-        "family": "Montserrat-Regular",
+        "family": "KoHo-Regular",
         "size": {
           "1": 12,
           "2": 14,
@@ -25416,16 +25416,16 @@
           "true": 38
         },
         "weight": {
-          "1": "100",
-          "2": "200",
+          "1": "300",
+          "2": "300",
           "3": "300",
           "4": "400",
           "5": "500",
           "6": "600",
           "7": "700",
-          "8": "800",
-          "9": "900",
-          "true": "900"
+          "8": "700",
+          "9": "700",
+          "true": "700"
         },
         "letterSpacing": {
           "1": 0,
@@ -25441,37 +25441,43 @@
         },
         "face": {
           "100": {
-            "normal": "Montserrat-Thin"
+            "normal": "KoHo-Regular"
           },
           "200": {
-            "normal": "Montserrat-ExtraLight"
+            "normal": "KoHo-Regular"
           },
           "300": {
-            "normal": "Montserrat-Light"
+            "normal": "KoHo-Light",
+            "italic": "KoHo-LightItalic"
           },
           "400": {
-            "normal": "Montserrat-Regular",
-            "italic": "Montserrat-Italic"
+            "normal": "KoHo-Regular",
+            "italic": "KoHo-Italic"
           },
           "500": {
-            "normal": "Montserrat-Medium"
+            "normal": "KoHo-Medium",
+            "italic": "KoHo-MediumItalic"
           },
           "600": {
-            "normal": "Montserrat-SemiBold"
+            "normal": "KoHo-SemiBold",
+            "italic": "KoHo-SemiBoldItalic"
           },
           "700": {
-            "normal": "Montserrat-Bold"
+            "normal": "KoHo-Bold",
+            "italic": "KoHo-BoldItalic"
           },
           "800": {
-            "normal": "Montserrat-ExtraBold"
+            "normal": "KoHo-Bold",
+            "italic": "KoHo-BoldItalic"
           },
           "900": {
-            "normal": "Montserrat-Black"
+            "normal": "KoHo-Bold",
+            "italic": "KoHo-BoldItalic"
           }
         }
       },
       "body": {
-        "family": "Montserrat-Regular",
+        "family": "KoHo-Regular",
         "size": {
           "1": 12,
           "2": 14,
@@ -25497,16 +25503,16 @@
           "true": 38
         },
         "weight": {
-          "1": "100",
-          "2": "200",
+          "1": "300",
+          "2": "300",
           "3": "300",
           "4": "400",
           "5": "500",
           "6": "600",
           "7": "700",
-          "8": "800",
-          "9": "900",
-          "true": "900"
+          "8": "700",
+          "9": "700",
+          "true": "700"
         },
         "letterSpacing": {
           "1": 0,
@@ -25522,32 +25528,38 @@
         },
         "face": {
           "100": {
-            "normal": "Montserrat-Thin"
+            "normal": "KoHo-Regular"
           },
           "200": {
-            "normal": "Montserrat-ExtraLight"
+            "normal": "KoHo-Regular"
           },
           "300": {
-            "normal": "Montserrat-Light"
+            "normal": "KoHo-Light",
+            "italic": "KoHo-LightItalic"
           },
           "400": {
-            "normal": "Montserrat-Regular",
-            "italic": "Montserrat-Italic"
+            "normal": "KoHo-Regular",
+            "italic": "KoHo-Italic"
           },
           "500": {
-            "normal": "Montserrat-Medium"
+            "normal": "KoHo-Medium",
+            "italic": "KoHo-MediumItalic"
           },
           "600": {
-            "normal": "Montserrat-SemiBold"
+            "normal": "KoHo-SemiBold",
+            "italic": "KoHo-SemiBoldItalic"
           },
           "700": {
-            "normal": "Montserrat-Bold"
+            "normal": "KoHo-Bold",
+            "italic": "KoHo-BoldItalic"
           },
           "800": {
-            "normal": "Montserrat-ExtraBold"
+            "normal": "KoHo-Bold",
+            "italic": "KoHo-BoldItalic"
           },
           "900": {
-            "normal": "Montserrat-Black"
+            "normal": "KoHo-Bold",
+            "italic": "KoHo-BoldItalic"
           }
         }
       }

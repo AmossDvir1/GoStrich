@@ -93,6 +93,22 @@ export default function ProfileScreen() {
 
   const handleLogout = () => setLogoutModalVisible(true);
 
+  const handleDone = () => {
+    void save({
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      weightKg: (() => {
+        const num = parseFloat(weight);
+        return weight.trim() === "" || isNaN(num) ? null : num;
+      })(),
+      heightCm: (() => {
+        const num = parseFloat(height);
+        return height.trim() === "" || isNaN(num) ? null : num;
+      })(),
+    });
+    router.back();
+  };
+
   // Derive initials for avatar
   const initials =
     (firstName.charAt(0) + lastName.charAt(0)).toUpperCase() || "?";
@@ -193,7 +209,7 @@ export default function ProfileScreen() {
             Profile
           </SizableText>
           <Pressable
-            onPress={() => router.back()}
+            onPress={handleDone}
             hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel="Close"

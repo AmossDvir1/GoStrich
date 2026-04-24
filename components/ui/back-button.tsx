@@ -1,6 +1,6 @@
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import React from "react";
 import { Pressable } from "react-native";
@@ -46,7 +46,7 @@ export function BackButton({ onPress, tintColor, size = 36 }: BackButtonProps) {
         justifyContent: "center",
       })}
     >
-      <MaterialIcons name="chevron-left" size={size - 4} color={color} />
+      <Ionicons name="arrow-back" size={size - 4} color={color} />
     </Pressable>
   );
 }

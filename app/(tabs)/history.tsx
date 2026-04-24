@@ -1,74 +1,57 @@
-﻿import { STORY_HEIGHT, STORY_WIDTH, StoryCard } from "@/components/story-card";
+﻿import { SwipeableSessionRow } from "@/components/swipeable-session-row";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { ScreenWrapper } from "@/components/ui/screen-wrapper";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { shareSessionAsStory } from "@/services/sharing";
-import { useAppStore } from "@/stores/appStore";
 import { useWorkoutStore } from "@/stores/workoutStore";
-import { WorkoutSummary } from "@/types/workout";
-import { formatDuration } from "@/utils/formatting";
-import { router } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Pressable,
-  View,
-} from "react-native";
-import { SizableText, XStack, YStack } from "tamagui";
+import React, { useMemo, useState } from "react";
+import { FlatList, Pressable, View } from "react-native";
+import { SizableText, YStack } from "tamagui";
 
-const CARD_SHADOW = {
-  shadowColor: "#000",
-  shadowOpacity: 0.06,
-  shadowRadius: 8,
-  shadowOffset: { width: 0, height: 2 },
-  elevation: 2,
-} as const;
+type SortKey =
+  | "recent"
+  | "oldest"
+  | "farthest"
+  | "nearest"
+  | "longest"
+  | "shortest";
 
-const CARD_STYLE = {
-  flexDirection: "row" as const,
-  alignItems: "center" as const,
-  borderRadius: 20,
-  paddingVertical: 16,
-  paddingHorizontal: 18,
-} as const;
+// Each group: [default/desc option, toggled/asc option]
+const CHIP_GROUPS: [SortKey, SortKey, string, string][] = [
+  ["recent", "oldest", "Recent", "Oldest"],
+  ["farthest", "nearest", "Farthest", "Nearest"],
+  ["longest", "shortest", "Longest", "Shortest"],
+];
 
 export default function HistoryScreen() {
   const scheme = useColorScheme();
   const c = Colors[scheme];
   const workouts = useWorkoutStore((s) => s.workouts);
   const removeWorkout = useWorkoutStore((s) => s.removeWorkout);
-  const { unitSystem } = useAppStore();
 
-  const [sharingWorkout, setSharingWorkout] = useState<WorkoutSummary | null>(
-    null,
-  );
-  const [isSharing, setIsSharing] = useState(false);
-  const storyCardRef = useRef<View | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [sortBy, setSortBy] = useState<SortKey>("recent");
 
-  useEffect(() => {
-    if (!sharingWorkout) return;
-    shareSessionAsStory(
-      storyCardRef,
-      () => setIsSharing(true),
-      () => {
-        setIsSharing(false);
-        setSharingWorkout(null);
-      },
-    );
-  }, [sharingWorkout]);
-
-  const handleDelete = (id: string, name: string) => {
-    Alert.alert("Delete Session", `Delete "${name}"?`, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: () => removeWorkout(id),
-      },
-    ]);
-  };
+  const sortedWorkouts = useMemo(() => {
+    const copy = [...workouts];
+    switch (sortBy) {
+      case "oldest":
+        return copy.sort((a, b) => a.startTime - b.startTime);
+      case "farthest":
+        return copy.sort((a, b) => b.distance - a.distance);
+      case "nearest":
+        return copy.sort((a, b) => a.distance - b.distance);
+      case "longest":
+        return copy.sort((a, b) => b.duration - a.duration);
+      case "shortest":
+        return copy.sort((a, b) => a.duration - b.duration);
+      default:
+        return copy.sort((a, b) => b.startTime - a.startTime);
+    }
+  }, [workouts, sortBy]);
 
   return (
     <ScreenWrapper>
@@ -83,6 +66,48 @@ export default function HistoryScreen() {
         </SizableText>
       </YStack>
 
+      {workouts.length > 0 && (
+        <View
+          style={{
+            flexDirection: "row",
+            paddingHorizontal: 24,
+            paddingBottom: 12,
+            gap: 8,
+          }}
+        >
+          {CHIP_GROUPS.map(([keyA, keyB, labelA, labelB]) => {
+            const active = sortBy === keyA || sortBy === keyB;
+            const label = sortBy === keyB ? labelB : labelA;
+            return (
+              <Pressable
+                key={keyA}
+                onPress={() => {
+                  if (sortBy === keyA) setSortBy(keyB);
+                  else if (sortBy === keyB) setSortBy(keyA);
+                  else setSortBy(keyA);
+                }}
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 6,
+                  borderRadius: 20,
+                  backgroundColor: active ? c.primary : c.surface,
+                  borderWidth: 1,
+                  borderColor: active ? c.primary : c.border,
+                  alignSelf: "flex-start",
+                }}
+              >
+                <SizableText
+                  size="$2"
+                  fontWeight="600"
+                  color={active ? "white" : c.textSecondary}
+                >
+                  {label}
+                </SizableText>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
       {workouts.length === 0 ? (
         <YStack flex={1} alignItems="center" justifyContent="center">
           <SizableText fontSize={48} marginBottom="$3">
@@ -102,7 +127,7 @@ export default function HistoryScreen() {
         </YStack>
       ) : (
         <FlatList
-          data={workouts}
+          data={sortedWorkouts}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{
             paddingHorizontal: 16,
@@ -110,94 +135,28 @@ export default function HistoryScreen() {
             gap: 12,
           }}
           showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => {
-            const distKm = (item.distance / 1000).toFixed(2);
-            return (
-              <Pressable
-                onPress={() => router.push(`/session/${item.id}` as never)}
-                style={[
-                  { backgroundColor: c.surface },
-                  CARD_STYLE,
-                  CARD_SHADOW,
-                ]}
-                android_ripple={{ color: "rgba(0,0,0,0.05)" }}
-                accessibilityRole="button"
-                accessibilityLabel={`Open session: ${item.name}`}
-              >
-                <YStack flex={1}>
-                  <SizableText
-                    size="$4"
-                    fontWeight="700"
-                    marginBottom="$1"
-                    color={c.textPrimary}
-                  >
-                    {item.name}
-                  </SizableText>
-                  <XStack alignItems="center" gap="$2">
-                    <SizableText size="$3" fontWeight="600" color={c.primary}>
-                      {distKm} km
-                    </SizableText>
-                    <SizableText size="$3" color={c.border}>
-                      |
-                    </SizableText>
-                    <SizableText
-                      size="$3"
-                      fontWeight="600"
-                      color={c.textSecondary}
-                    >
-                      {formatDuration(item.duration)}
-                    </SizableText>
-                  </XStack>
-                </YStack>
-                <Pressable
-                  onPress={() => setSharingWorkout(item)}
-                  disabled={isSharing}
-                  hitSlop={8}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Share session: ${item.name}`}
-                  style={{ padding: 6, marginLeft: 4 }}
-                >
-                  {isSharing && sharingWorkout?.id === item.id ? (
-                    <ActivityIndicator size="small" color={c.primary} />
-                  ) : (
-                    <SizableText fontSize={17}>{"\uD83D\uDCE4"}</SizableText>
-                  )}
-                </Pressable>
-                <Pressable
-                  onPress={() => handleDelete(item.id, item.name)}
-                  hitSlop={8}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Delete session: ${item.name}`}
-                  style={{ padding: 6, marginLeft: 4 }}
-                >
-                  <SizableText fontSize={17}>{"\uD83D\uDDD1"}</SizableText>
-                </Pressable>
-              </Pressable>
-            );
-          }}
+          renderItem={({ item }) => (
+            <SwipeableSessionRow
+              item={item}
+              onDeletePress={(id, name) => setDeleteTarget({ id, name })}
+            />
+          )}
         />
       )}
 
-      {/* Off-screen StoryCard — mounted when a share is triggered */}
-      {sharingWorkout && (
-        <View
-          style={{
-            position: "absolute",
-            top: 0,
-            left: -STORY_WIDTH - 20,
-            width: STORY_WIDTH,
-            height: STORY_HEIGHT,
-            opacity: 0,
-          }}
-          pointerEvents="none"
-        >
-          <StoryCard
-            ref={storyCardRef}
-            workout={sharingWorkout}
-            unitSystem={unitSystem}
-          />
-        </View>
-      )}
+      <ConfirmModal
+        visible={deleteTarget !== null}
+        title="Delete Session"
+        message={`Delete "${deleteTarget?.name ?? ""}"? This run will be permanently deleted.`}
+        confirmLabel="Delete"
+        confirmDestructive
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          if (deleteTarget) removeWorkout(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
+        colors={c}
+      />
     </ScreenWrapper>
   );
 }
