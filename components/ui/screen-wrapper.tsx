@@ -18,13 +18,20 @@ interface ScreenWrapperProps {
  * Screens that manage their own safe area (e.g. home, session, profile)
  * should continue doing so via `useSafeAreaInsets()` directly.
  */
-export function ScreenWrapper({ children, topPadding = 0 }: ScreenWrapperProps) {
+export function ScreenWrapper({
+  children,
+  topPadding = 0,
+}: ScreenWrapperProps) {
   const insets = useSafeAreaInsets();
   const scheme = useColorScheme();
   const c = Colors[scheme];
 
   return (
-    <YStack flex={1} backgroundColor={c.background} paddingTop={insets.top + topPadding}>
+    <YStack
+      flex={1}
+      backgroundColor={c.background}
+      paddingTop={insets.top + topPadding}
+    >
       {children}
     </YStack>
   );

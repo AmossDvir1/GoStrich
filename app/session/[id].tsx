@@ -9,12 +9,8 @@ import { useWorkoutStore } from "@/stores/workoutStore";
 import { formatDistance, formatDuration, formatPace } from "@/utils/formatting";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useRef, useState } from "react";
-import {
-    ActivityIndicator,
-    Pressable,
-    ScrollView,
-} from "react-native";
 import type { View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView } from "react-native";
 import MapView, { Polyline, PROVIDER_DEFAULT } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SizableText, XStack, YStack } from "tamagui";
@@ -97,7 +93,9 @@ export default function SessionSummaryScreen() {
               backgroundColor: c.primary,
             }}
           >
-          <SizableText color="white" fontWeight="700">Go back</SizableText>
+            <SizableText color="white" fontWeight="700">
+              Go back
+            </SizableText>
           </Pressable>
         </YStack>
       </YStack>
@@ -194,7 +192,13 @@ export default function SessionSummaryScreen() {
           >
             <MapView
               provider={PROVIDER_DEFAULT}
-          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+              }}
               initialRegion={region}
               scrollEnabled
               zoomEnabled

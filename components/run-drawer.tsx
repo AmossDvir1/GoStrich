@@ -7,7 +7,6 @@ import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useEffect, useRef } from "react";
 import { LayoutChangeEvent, Pressable, View } from "react-native";
-import { SizableText, XStack, YStack } from "tamagui";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   cancelAnimation,
@@ -19,6 +18,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
+import { SizableText, XStack, YStack } from "tamagui";
 
 // ─── constants ────────────────────────────────────────────────────────────────
 const THUMB_SIZE = 90;
@@ -211,9 +211,19 @@ export function RunDrawer({
                 alignItems="center"
                 justifyContent="center"
               >
-                <YStack width={4} height={4} borderRadius={2} backgroundColor="white" />
+                <YStack
+                  width={4}
+                  height={4}
+                  borderRadius={2}
+                  backgroundColor="white"
+                />
               </YStack>
-              <SizableText size="$3" fontWeight="600" color={c.textPrimary} numberOfLines={1}>
+              <SizableText
+                size="$3"
+                fontWeight="600"
+                color={c.textPrimary}
+                numberOfLines={1}
+              >
                 {locationName}
               </SizableText>
             </XStack>
@@ -225,16 +235,31 @@ export function RunDrawer({
               <SizableText size="$8" fontWeight="900" color={c.textPrimary}>
                 {formatDuration(elapsed)}
               </SizableText>
-              <SizableText size="$1" fontWeight="600" marginTop="$1" color={c.textSecondary}>
+              <SizableText
+                size="$1"
+                fontWeight="600"
+                marginTop="$1"
+                color={c.textSecondary}
+              >
                 Time
               </SizableText>
             </YStack>
-            <YStack width={1} height={40} marginHorizontal="$2" backgroundColor={c.border} />
+            <YStack
+              width={1}
+              height={40}
+              marginHorizontal="$2"
+              backgroundColor={c.border}
+            />
             <YStack flex={1} alignItems="center">
               <SizableText size="$8" fontWeight="900" color={c.textPrimary}>
                 {formatDistance(distanceKm * 1000, unitSystem).split(" ")[0]}
               </SizableText>
-              <SizableText size="$1" fontWeight="600" marginTop="$1" color={c.textSecondary}>
+              <SizableText
+                size="$1"
+                fontWeight="600"
+                marginTop="$1"
+                color={c.textSecondary}
+              >
                 {formatDistance(distanceKm * 1000, unitSystem).split(" ")[1]}
               </SizableText>
             </YStack>
@@ -273,7 +298,9 @@ export function RunDrawer({
               <SizableText
                 size="$3"
                 fontWeight="800"
-                color={locationReady ? "rgba(255,255,255,0.9)" : c.textSecondary}
+                color={
+                  locationReady ? "rgba(255,255,255,0.9)" : c.textSecondary
+                }
                 style={{ letterSpacing: 1.5 }}
               >
                 {locationReady ? "SLIDE TO START  ›" : "WAITING FOR GPS..."}
@@ -302,7 +329,12 @@ export function RunDrawer({
               accessibilityRole="button"
               accessibilityLabel="Pause run"
             >
-              <SizableText size="$3" fontWeight="800" color="white" style={{ letterSpacing: 1.5 }}>
+              <SizableText
+                size="$3"
+                fontWeight="800"
+                color="white"
+                style={{ letterSpacing: 1.5 }}
+              >
                 PAUSE
               </SizableText>
             </Pressable>
@@ -335,7 +367,12 @@ export function RunDrawer({
                 accessibilityRole="button"
                 accessibilityLabel="Resume run"
               >
-                <SizableText size="$3" fontWeight="800" color="white" style={{ letterSpacing: 1.5 }}>
+                <SizableText
+                  size="$3"
+                  fontWeight="800"
+                  color="white"
+                  style={{ letterSpacing: 1.5 }}
+                >
                   RESUME
                 </SizableText>
               </Pressable>
@@ -354,7 +391,12 @@ export function RunDrawer({
                 accessibilityRole="button"
                 accessibilityLabel="End session"
               >
-                <SizableText size="$3" fontWeight="800" color={c.danger} style={{ letterSpacing: 0.5 }}>
+                <SizableText
+                  size="$3"
+                  fontWeight="800"
+                  color={c.danger}
+                  style={{ letterSpacing: 0.5 }}
+                >
                   END
                 </SizableText>
               </Pressable>

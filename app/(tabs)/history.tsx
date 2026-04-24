@@ -10,11 +10,11 @@ import { formatDuration } from "@/utils/formatting";
 import { router } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Pressable,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Pressable,
+  View,
 } from "react-native";
 import { SizableText, XStack, YStack } from "tamagui";
 
@@ -85,7 +85,9 @@ export default function HistoryScreen() {
 
       {workouts.length === 0 ? (
         <YStack flex={1} alignItems="center" justifyContent="center">
-          <SizableText fontSize={48} marginBottom="$3">{"🏃"}</SizableText>
+          <SizableText fontSize={48} marginBottom="$3">
+            {"🏃"}
+          </SizableText>
           <SizableText
             size="$5"
             fontWeight="600"
@@ -113,7 +115,11 @@ export default function HistoryScreen() {
             return (
               <Pressable
                 onPress={() => router.push(`/session/${item.id}` as never)}
-                style={[{ backgroundColor: c.surface }, CARD_STYLE, CARD_SHADOW]}
+                style={[
+                  { backgroundColor: c.surface },
+                  CARD_STYLE,
+                  CARD_SHADOW,
+                ]}
                 android_ripple={{ color: "rgba(0,0,0,0.05)" }}
                 accessibilityRole="button"
                 accessibilityLabel={`Open session: ${item.name}`}

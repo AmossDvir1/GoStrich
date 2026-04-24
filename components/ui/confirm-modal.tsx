@@ -62,17 +62,33 @@ export function ConfirmModal({
       {/* Backdrop — tap outside dismisses */}
       <Pressable style={BACKDROP_STYLE} onPress={onCancel}>
         {/* Inner card — stop taps propagating to backdrop */}
-        <Pressable style={[CARD_STYLE, { backgroundColor: colors.surface }]}
-          onStartShouldSetResponder={() => true}>
-          <SizableText size="$5" fontWeight="700" marginBottom="$2" color={colors.textPrimary}>
+        <Pressable
+          style={[CARD_STYLE, { backgroundColor: colors.surface }]}
+          onStartShouldSetResponder={() => true}
+        >
+          <SizableText
+            size="$5"
+            fontWeight="700"
+            marginBottom="$2"
+            color={colors.textPrimary}
+          >
             {title}
           </SizableText>
-          <SizableText size="$3" lineHeight={20} marginBottom="$5" color={colors.textSecondary}>
+          <SizableText
+            size="$3"
+            lineHeight={20}
+            marginBottom="$5"
+            color={colors.textSecondary}
+          >
             {message}
           </SizableText>
 
           {/* Horizontal rule */}
-          <YStack height={0.5} marginHorizontal={-24} backgroundColor={colors.border} />
+          <YStack
+            height={0.5}
+            marginHorizontal={-24}
+            backgroundColor={colors.border}
+          />
 
           <XStack>
             <Pressable
@@ -82,13 +98,21 @@ export function ConfirmModal({
               accessibilityRole="button"
               accessibilityLabel="Cancel"
             >
-              <SizableText size="$4" fontWeight="600" color={colors.textSecondary}>
+              <SizableText
+                size="$4"
+                fontWeight="600"
+                color={colors.textSecondary}
+              >
                 Cancel
               </SizableText>
             </Pressable>
 
             {/* Vertical rule */}
-            <YStack width={0.5} marginVertical="$1" backgroundColor={colors.border} />
+            <YStack
+              width={0.5}
+              marginVertical="$1"
+              backgroundColor={colors.border}
+            />
 
             <Pressable
               style={BUTTON_STYLE}

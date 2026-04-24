@@ -65,7 +65,12 @@ export function PhotoPickerModal({
           </Pressable>
         ))}
 
-        <YStack height={1} marginVertical="$2" opacity={0.5} backgroundColor={c.border} />
+        <YStack
+          height={1}
+          marginVertical="$2"
+          opacity={0.5}
+          backgroundColor={c.border}
+        />
         <Pressable
           onPress={onDismiss}
           style={({ pressed }) => [
