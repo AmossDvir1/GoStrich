@@ -1,7 +1,7 @@
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import React from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable } from "react-native";
 import { SizableText, YStack } from "tamagui";
 import { SharedActionSheet } from "./ui/shared-action-sheet";
 
@@ -17,6 +17,13 @@ interface PhotoPickerModalProps {
   onDismiss: () => void;
   title?: string;
 }
+
+const OPTION_STYLE = {
+  paddingVertical: 16,
+  paddingHorizontal: 16,
+  borderRadius: 16,
+  alignItems: "center" as const,
+} as const;
 
 export function PhotoPickerModal({
   visible,
@@ -38,7 +45,7 @@ export function PhotoPickerModal({
               onDismiss();
             }}
             style={({ pressed }) => [
-              styles.option,
+              OPTION_STYLE,
               {
                 backgroundColor: pressed
                   ? scheme === "dark"
@@ -58,11 +65,11 @@ export function PhotoPickerModal({
           </Pressable>
         ))}
 
-        <View style={[styles.separator, { backgroundColor: c.border }]} />
+        <YStack height={1} marginVertical="$2" opacity={0.5} backgroundColor={c.border} />
         <Pressable
           onPress={onDismiss}
           style={({ pressed }) => [
-            styles.option,
+            OPTION_STYLE,
             {
               backgroundColor: pressed
                 ? scheme === "dark"
@@ -80,17 +87,3 @@ export function PhotoPickerModal({
     </SharedActionSheet>
   );
 }
-
-const styles = StyleSheet.create({
-  option: {
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    borderRadius: 16,
-    alignItems: "center",
-  },
-  separator: {
-    height: 1,
-    marginVertical: 8,
-    opacity: 0.5,
-  },
-});

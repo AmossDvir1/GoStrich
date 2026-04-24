@@ -13,7 +13,7 @@ export default function NotFoundScreen() {
         padding="$5"
       >
         <SizableText size="$6" fontWeight="700" color="#1e293b">
-          This screen doesn't exist.
+          {"This screen doesn't exist."}
         </SizableText>
         <Link href="/" style={{ marginTop: 16, paddingVertical: 16 }}>
           <SizableText size="$4" color="$primary">

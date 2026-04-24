@@ -14,7 +14,6 @@ import {
     Alert,
     FlatList,
     Pressable,
-    Text,
     View,
 } from "react-native";
 import { SizableText, XStack, YStack } from "tamagui";
@@ -25,6 +24,14 @@ const CARD_SHADOW = {
   shadowRadius: 8,
   shadowOffset: { width: 0, height: 2 },
   elevation: 2,
+} as const;
+
+const CARD_STYLE = {
+  flexDirection: "row" as const,
+  alignItems: "center" as const,
+  borderRadius: 20,
+  paddingVertical: 16,
+  paddingHorizontal: 18,
 } as const;
 
 export default function HistoryScreen() {
@@ -78,7 +85,7 @@ export default function HistoryScreen() {
 
       {workouts.length === 0 ? (
         <YStack flex={1} alignItems="center" justifyContent="center">
-          <Text style={{ fontSize: 48, marginBottom: 12 }}>{"🏃"}</Text>
+          <SizableText fontSize={48} marginBottom="$3">{"🏃"}</SizableText>
           <SizableText
             size="$5"
             fontWeight="600"
@@ -102,22 +109,11 @@ export default function HistoryScreen() {
           }}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => {
-            const date = new Date(item.startTime);
             const distKm = (item.distance / 1000).toFixed(2);
             return (
               <Pressable
                 onPress={() => router.push(`/session/${item.id}` as never)}
-                style={[
-                  {
-                    flexDirection: "row",
-                    alignItems: "center",
-                    borderRadius: 20,
-                    paddingVertical: 16,
-                    paddingHorizontal: 18,
-                    backgroundColor: c.surface,
-                  },
-                  CARD_SHADOW,
-                ]}
+                style={[{ backgroundColor: c.surface }, CARD_STYLE, CARD_SHADOW]}
                 android_ripple={{ color: "rgba(0,0,0,0.05)" }}
                 accessibilityRole="button"
                 accessibilityLabel={`Open session: ${item.name}`}
@@ -158,7 +154,7 @@ export default function HistoryScreen() {
                   {isSharing && sharingWorkout?.id === item.id ? (
                     <ActivityIndicator size="small" color={c.primary} />
                   ) : (
-                    <Text style={{ fontSize: 17 }}>{"\uD83D\uDCE4"}</Text>
+                    <SizableText fontSize={17}>{"\uD83D\uDCE4"}</SizableText>
                   )}
                 </Pressable>
                 <Pressable
@@ -168,7 +164,7 @@ export default function HistoryScreen() {
                   accessibilityLabel={`Delete session: ${item.name}`}
                   style={{ padding: 6, marginLeft: 4 }}
                 >
-                  <Text style={{ fontSize: 17 }}>{"🗑"}</Text>
+                  <SizableText fontSize={17}>{"\uD83D\uDDD1"}</SizableText>
                 </Pressable>
               </Pressable>
             );

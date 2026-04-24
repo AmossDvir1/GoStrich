@@ -13,10 +13,8 @@ import {
     ActivityIndicator,
     Pressable,
     ScrollView,
-    StyleSheet,
-    Text,
-    View,
 } from "react-native";
+import type { View } from "react-native";
 import MapView, { Polyline, PROVIDER_DEFAULT } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SizableText, XStack, YStack } from "tamagui";
@@ -99,7 +97,7 @@ export default function SessionSummaryScreen() {
               backgroundColor: c.primary,
             }}
           >
-            <Text style={{ color: "white", fontWeight: "700" }}>Go back</Text>
+          <SizableText color="white" fontWeight="700">Go back</SizableText>
           </Pressable>
         </YStack>
       </YStack>
@@ -156,14 +154,14 @@ export default function SessionSummaryScreen() {
         alignItems="center"
         justifyContent="space-between"
         backgroundColor={c.surface}
-        borderBottomWidth={StyleSheet.hairlineWidth}
+        borderBottomWidth={0.5}
         borderBottomColor={c.border}
       >
         <BackButton />
         <SizableText size="$5" fontWeight="700" color={c.textPrimary}>
           Session Summary
         </SizableText>
-        <View style={{ width: 36 }} />
+        <XStack width={36} />
       </XStack>
 
       <ScrollView
@@ -187,20 +185,16 @@ export default function SessionSummaryScreen() {
         </SizableText>
 
         {region != null && coords.length > 1 && (
-          <View
-            style={[
-              {
-                height: 200,
-                borderRadius: 20,
-                overflow: "hidden",
-                marginBottom: 20,
-              },
-              MAP_SHADOW,
-            ]}
+          <YStack
+            height={200}
+            borderRadius="$4"
+            overflow="hidden"
+            marginBottom="$5"
+            style={MAP_SHADOW}
           >
             <MapView
               provider={PROVIDER_DEFAULT}
-              style={StyleSheet.absoluteFill}
+          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
               initialRegion={region}
               scrollEnabled
               zoomEnabled
@@ -219,7 +213,7 @@ export default function SessionSummaryScreen() {
                 strokeWidth={4}
               />
             </MapView>
-          </View>
+          </YStack>
         )}
 
         <YStack
@@ -230,16 +224,14 @@ export default function SessionSummaryScreen() {
           backgroundColor={c.surface}
           style={CARD_SHADOW}
         >
-          <Text
-            style={{
-              fontSize: 56,
-              lineHeight: 62,
-              fontWeight: "900",
-              color: c.primary,
-            }}
+          <SizableText
+            fontSize={56}
+            lineHeight={62}
+            fontWeight="900"
+            color={c.primary}
           >
             {distanceFormatted.split(" ")[0]}
-          </Text>
+          </SizableText>
           <SizableText
             size="$3"
             fontWeight="600"
@@ -284,15 +276,9 @@ export default function SessionSummaryScreen() {
           android_ripple={{ color: "rgba(255,255,255,0.2)" }}
           accessibilityRole="button"
         >
-          <Text
-            style={{
-              color: "white",
-              fontSize: 16,
-              fontWeight: "800",
-            }}
-          >
+          <SizableText color="white" fontWeight="800" size="$5">
             Save and Done
-          </Text>
+          </SizableText>
         </Pressable>
 
         <Pressable
@@ -319,17 +305,11 @@ export default function SessionSummaryScreen() {
           {isSharing ? (
             <ActivityIndicator size="small" color={c.primary} />
           ) : (
-            <Text style={{ fontSize: 16 }}>📤</Text>
+            <SizableText fontSize={16}>📤</SizableText>
           )}
-          <Text
-            style={{
-              color: c.primary,
-              fontSize: 15,
-              fontWeight: "700",
-            }}
-          >
+          <SizableText color={c.primary} fontWeight="700" size="$4">
             {isSharing ? "Preparing…" : "Share to Instagram Story"}
-          </Text>
+          </SizableText>
         </Pressable>
 
         <Pressable
@@ -343,22 +323,20 @@ export default function SessionSummaryScreen() {
           accessibilityRole="button"
           accessibilityLabel="Discard session"
         >
-          <Text style={{ fontSize: 14, fontWeight: "600", color: "#EF4444" }}>
+          <SizableText size="$3" fontWeight="600" color={c.danger}>
             Discard this run
-          </Text>
+          </SizableText>
         </Pressable>
       </ScrollView>
 
       {/* Off-screen StoryCard — mounted hidden so captureRef can capture it */}
-      <View
-        style={{
-          position: "absolute",
-          top: 0,
-          left: -STORY_WIDTH - 20,
-          width: STORY_WIDTH,
-          height: STORY_HEIGHT,
-          opacity: 0,
-        }}
+      <YStack
+        position="absolute"
+        top={0}
+        left={-STORY_WIDTH - 20}
+        width={STORY_WIDTH}
+        height={STORY_HEIGHT}
+        opacity={0}
         pointerEvents="none"
       >
         <StoryCard
@@ -366,7 +344,7 @@ export default function SessionSummaryScreen() {
           workout={workout}
           unitSystem={unitSystem}
         />
-      </View>
+      </YStack>
     </YStack>
   );
 }

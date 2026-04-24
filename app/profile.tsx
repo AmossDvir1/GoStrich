@@ -17,12 +17,41 @@ import {
   Pressable,
   ScrollView,
   Switch,
-  Text,
   TextInput,
-  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SizableText, XStack, YStack } from "tamagui";
+
+const AVATAR_PRESSABLE_STYLE = {
+  width: 80,
+  height: 80,
+  borderRadius: 40,
+  alignSelf: "center" as const,
+  alignItems: "center" as const,
+  justifyContent: "center" as const,
+  overflow: "hidden" as const,
+} as const;
+
+const AVATAR_IMAGE_STYLE = {
+  width: 80,
+  height: 80,
+  borderRadius: 40,
+} as const;
+
+const LOGOUT_PRESSABLE_STYLE = {
+  marginTop: 24,
+  borderRadius: 14,
+  borderWidth: 1.5,
+  paddingVertical: 15,
+  alignItems: "center" as const,
+} as const;
+
+const FIELD_INPUT_STYLE = {
+  flex: 1,
+  textAlign: "right" as const,
+  paddingLeft: 12,
+  fontSize: 15,
+} as const;
 
 export default function ProfileScreen() {
   const scheme = useColorScheme();
@@ -187,29 +216,20 @@ export default function ProfileScreen() {
           {/* Avatar — tap to change */}
           <Pressable
             onPress={handleChangePhoto}
-            style={{
-              width: 80,
-              height: 80,
-              borderRadius: 40,
-              alignSelf: "center",
-              alignItems: "center",
-              justifyContent: "center",
-              overflow: "hidden",
-              backgroundColor: c.primary,
-            }}
+            style={[AVATAR_PRESSABLE_STYLE, { backgroundColor: c.primary }]}
             accessibilityRole="button"
             accessibilityLabel="Change profile photo"
           >
             {profile.photoUrl ? (
               <Image
                 source={{ uri: profile.photoUrl }}
-                style={{ width: 80, height: 80, borderRadius: 40 }}
+                style={AVATAR_IMAGE_STYLE}
                 contentFit="cover"
               />
             ) : (
-              <Text style={{ color: "#fff", fontSize: 30, fontWeight: "800" }}>
+              <SizableText color="white" fontSize={30} fontWeight="800">
                 {initials}
-              </Text>
+              </SizableText>
             )}
           </Pressable>
           <SizableText
@@ -384,14 +404,7 @@ export default function ProfileScreen() {
           {/* ── Log out ──────────────────────────────────────── */}
           <Pressable
             onPress={handleLogout}
-            style={{
-              marginTop: 24,
-              borderRadius: 14,
-              borderWidth: 1.5,
-              paddingVertical: 15,
-              alignItems: "center",
-              borderColor: c.danger,
-            }}
+            style={[LOGOUT_PRESSABLE_STYLE, { borderColor: c.danger }]}
             accessibilityRole="button"
             accessibilityLabel="Log out"
           >
@@ -482,13 +495,7 @@ function FieldRow({
         {label}
       </SizableText>
       <TextInput
-        style={{
-          color: c.textPrimary,
-          fontSize: 15,
-          flex: 1,
-          textAlign: "right",
-          paddingLeft: 12,
-        }}
+        style={[FIELD_INPUT_STYLE, { color: c.textPrimary }]}
         value={value}
         onChangeText={onChangeText}
         onBlur={onBlur}
@@ -502,13 +509,5 @@ function FieldRow({
 }
 
 function Divider({ color }: { color: string }) {
-  return (
-    <View
-      style={{
-        height: 1,
-        marginLeft: 16,
-        backgroundColor: color,
-      }}
-    />
-  );
+  return <YStack height={1} marginLeft="$4" backgroundColor={color} />;
 }

@@ -3,9 +3,11 @@ import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { RunState } from "@/hooks/use-run-session";
 import { formatDistance, formatDuration } from "@/utils/formatting";
+import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useEffect, useRef } from "react";
-import { LayoutChangeEvent, Pressable, Text, View } from "react-native";
+import { LayoutChangeEvent, Pressable, View } from "react-native";
+import { SizableText, XStack, YStack } from "tamagui";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   cancelAnimation,
@@ -132,8 +134,26 @@ export function RunDrawer({
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Stable wrapper so runOnJS works correctly
-  const triggerStart = useCallback(() => onStart(), [onStart]);
+  // Stable wrapper so runOnJS works correctly — fires haptic feedback before starting
+  const triggerStart = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    onStart();
+  }, [onStart]);
+
+  const triggerPause = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    onPause();
+  }, [onPause]);
+
+  const triggerResume = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    onResume();
+  }, [onResume]);
+
+  const triggerEnd = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    onEnd();
+  }, [onEnd]);
 
   // Pan gesture — only active in idle state AND when location is ready
   const panGesture = Gesture.Pan()
@@ -173,104 +193,52 @@ export function RunDrawer({
         {isIdle ? (
           /* Location badge */
           locationName ? (
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 7,
-                paddingHorizontal: 10,
-                paddingVertical: 8,
-                borderRadius: 999,
-                backgroundColor: "rgba(16, 185, 129, 0.1)",
-                alignSelf: "flex-start",
-              }}
+            <XStack
+              alignItems="center"
+              gap={7}
+              paddingHorizontal={10}
+              paddingVertical="$2"
+              borderRadius={999}
+              backgroundColor="rgba(16, 185, 129, 0.1)"
+              alignSelf="flex-start"
             >
               {/* Styled map-pin: filled circle + white inner dot */}
-              <View
-                style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: 5,
-                  backgroundColor: c.primary,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
+              <YStack
+                width={10}
+                height={10}
+                borderRadius={5}
+                backgroundColor={c.primary}
+                alignItems="center"
+                justifyContent="center"
               >
-                <View
-                  style={{
-                    width: 4,
-                    height: 4,
-                    borderRadius: 2,
-                    backgroundColor: "white",
-                  }}
-                />
-              </View>
-              <Text
-                style={{
-                  fontSize: 13,
-                  fontWeight: "600",
-                  color: c.textPrimary,
-                }}
-                numberOfLines={1}
-              >
+                <YStack width={4} height={4} borderRadius={2} backgroundColor="white" />
+              </YStack>
+              <SizableText size="$3" fontWeight="600" color={c.textPrimary} numberOfLines={1}>
                 {locationName}
-              </Text>
-            </View>
+              </SizableText>
+            </XStack>
           ) : null
         ) : (
           /* Live metrics */
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <View style={{ flex: 1, alignItems: "center" }}>
-              <Text
-                style={{
-                  fontSize: 32,
-                  fontWeight: "900",
-                  color: c.textPrimary,
-                }}
-              >
+          <XStack alignItems="center">
+            <YStack flex={1} alignItems="center">
+              <SizableText size="$8" fontWeight="900" color={c.textPrimary}>
                 {formatDuration(elapsed)}
-              </Text>
-              <Text
-                style={{
-                  fontSize: 11,
-                  fontWeight: "600",
-                  marginTop: 2,
-                  color: c.textSecondary,
-                }}
-              >
+              </SizableText>
+              <SizableText size="$1" fontWeight="600" marginTop="$1" color={c.textSecondary}>
                 Time
-              </Text>
-            </View>
-            <View
-              style={{
-                width: 1,
-                height: 40,
-                marginHorizontal: 8,
-                backgroundColor: c.border,
-              }}
-            />
-            <View style={{ flex: 1, alignItems: "center" }}>
-              <Text
-                style={{
-                  fontSize: 32,
-                  fontWeight: "900",
-                  color: c.textPrimary,
-                }}
-              >
+              </SizableText>
+            </YStack>
+            <YStack width={1} height={40} marginHorizontal="$2" backgroundColor={c.border} />
+            <YStack flex={1} alignItems="center">
+              <SizableText size="$8" fontWeight="900" color={c.textPrimary}>
                 {formatDistance(distanceKm * 1000, unitSystem).split(" ")[0]}
-              </Text>
-              <Text
-                style={{
-                  fontSize: 11,
-                  fontWeight: "600",
-                  marginTop: 2,
-                  color: c.textSecondary,
-                }}
-              >
+              </SizableText>
+              <SizableText size="$1" fontWeight="600" marginTop="$1" color={c.textSecondary}>
                 {formatDistance(distanceKm * 1000, unitSystem).split(" ")[1]}
-              </Text>
-            </View>
-          </View>
+              </SizableText>
+            </YStack>
+          </XStack>
         )}
       </View>
 
@@ -302,18 +270,14 @@ export function RunDrawer({
               }}
             >
               {locationReady && <SlideShimmer />}
-              <Text
-                style={{
-                  color: locationReady
-                    ? "rgba(255,255,255,0.9)"
-                    : c.textSecondary,
-                  fontSize: 14,
-                  fontWeight: "800",
-                  letterSpacing: 1.5,
-                }}
+              <SizableText
+                size="$3"
+                fontWeight="800"
+                color={locationReady ? "rgba(255,255,255,0.9)" : c.textSecondary}
+                style={{ letterSpacing: 1.5 }}
               >
                 {locationReady ? "SLIDE TO START  ›" : "WAITING FOR GPS..."}
-              </Text>
+              </SizableText>
             </View>
           )}
 
@@ -321,7 +285,7 @@ export function RunDrawer({
               paddingRight reserves space so label centers in the visible area. */}
           {isRunning && (
             <Pressable
-              onPress={onPause}
+              onPress={triggerPause}
               style={{
                 position: "absolute",
                 top: TRACK_TOP,
@@ -338,16 +302,9 @@ export function RunDrawer({
               accessibilityRole="button"
               accessibilityLabel="Pause run"
             >
-              <Text
-                style={{
-                  color: "white",
-                  fontSize: 15,
-                  fontWeight: "800",
-                  letterSpacing: 1.5,
-                }}
-              >
+              <SizableText size="$3" fontWeight="800" color="white" style={{ letterSpacing: 1.5 }}>
                 PAUSE
-              </Text>
+              </SizableText>
             </Pressable>
           )}
 
@@ -365,7 +322,7 @@ export function RunDrawer({
               }}
             >
               <Pressable
-                onPress={onResume}
+                onPress={triggerResume}
                 style={{
                   flex: 1,
                   paddingLeft: THUMB_PAD,
@@ -378,19 +335,12 @@ export function RunDrawer({
                 accessibilityRole="button"
                 accessibilityLabel="Resume run"
               >
-                <Text
-                  style={{
-                    color: "white",
-                    fontSize: 15,
-                    fontWeight: "800",
-                    letterSpacing: 1.5,
-                  }}
-                >
+                <SizableText size="$3" fontWeight="800" color="white" style={{ letterSpacing: 1.5 }}>
                   RESUME
-                </Text>
+                </SizableText>
               </Pressable>
               <Pressable
-                onPress={onEnd}
+                onPress={triggerEnd}
                 style={{
                   width: END_BTN_WIDTH,
                   borderRadius: TRACK_HEIGHT / 2,
@@ -404,16 +354,9 @@ export function RunDrawer({
                 accessibilityRole="button"
                 accessibilityLabel="End session"
               >
-                <Text
-                  style={{
-                    color: c.danger,
-                    fontSize: 13,
-                    fontWeight: "800",
-                    letterSpacing: 0.5,
-                  }}
-                >
+                <SizableText size="$3" fontWeight="800" color={c.danger} style={{ letterSpacing: 0.5 }}>
                   END
-                </Text>
+                </SizableText>
               </Pressable>
             </View>
           )}

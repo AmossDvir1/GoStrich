@@ -1,14 +1,13 @@
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import React from "react";
-import { StyleProp, View, ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { YStack } from "tamagui";
 
 interface ScreenWrapperProps {
   children: React.ReactNode;
   /** Extra top padding added on top of the safe area inset. Defaults to 0. */
   topPadding?: number;
-  style?: StyleProp<ViewStyle>;
 }
 
 /**
@@ -19,27 +18,14 @@ interface ScreenWrapperProps {
  * Screens that manage their own safe area (e.g. home, session, profile)
  * should continue doing so via `useSafeAreaInsets()` directly.
  */
-export function ScreenWrapper({
-  children,
-  topPadding = 0,
-  style,
-}: ScreenWrapperProps) {
+export function ScreenWrapper({ children, topPadding = 0 }: ScreenWrapperProps) {
   const insets = useSafeAreaInsets();
   const scheme = useColorScheme();
   const c = Colors[scheme];
 
   return (
-    <View
-      style={[
-        {
-          flex: 1,
-          backgroundColor: c.background,
-          paddingTop: insets.top + topPadding,
-        },
-        style,
-      ]}
-    >
+    <YStack flex={1} backgroundColor={c.background} paddingTop={insets.top + topPadding}>
       {children}
-    </View>
+    </YStack>
   );
 }

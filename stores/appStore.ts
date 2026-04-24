@@ -1,4 +1,6 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 
 type UnitSystem = "metric" | "imperial";
 type MapStyle = "standard" | "satellite" | "terrain";
@@ -13,12 +15,20 @@ interface AppState {
   setDarkMode: (enabled: boolean) => void;
 }
 
-export const useAppStore = create<AppState>((set) => ({
-  unitSystem: "metric",
-  mapStyle: "standard",
-  darkMode: false,
+export const useAppStore = create<AppState>()(
+  persist(
+    (set) => ({
+      unitSystem: "metric",
+      mapStyle: "standard",
+      darkMode: false,
 
-  setUnitSystem: (unitSystem) => set({ unitSystem }),
-  setMapStyle: (mapStyle) => set({ mapStyle }),
-  setDarkMode: (darkMode) => set({ darkMode }),
-}));
+      setUnitSystem: (unitSystem) => set({ unitSystem }),
+      setMapStyle: (mapStyle) => set({ mapStyle }),
+      setDarkMode: (darkMode) => set({ darkMode }),
+    }),
+    {
+      name: "gostrich-app",
+      storage: createJSONStorage(() => AsyncStorage),
+    },
+  ),
+);

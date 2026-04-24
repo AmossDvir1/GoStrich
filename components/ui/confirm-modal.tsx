@@ -1,6 +1,7 @@
 import { Colors } from "@/constants/theme";
 import React from "react";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { Modal, Pressable } from "react-native";
+import { SizableText, XStack, YStack } from "tamagui";
 
 interface ConfirmModalProps {
   visible: boolean;
@@ -13,6 +14,28 @@ interface ConfirmModalProps {
   onConfirm: () => void | Promise<void>;
   colors: (typeof Colors)["light"];
 }
+
+const BACKDROP_STYLE = {
+  flex: 1,
+  backgroundColor: "rgba(0,0,0,0.5)",
+  justifyContent: "center" as const,
+  alignItems: "center" as const,
+  paddingHorizontal: 32,
+} as const;
+
+const CARD_STYLE = {
+  width: "100%" as const,
+  borderRadius: 20,
+  paddingTop: 28,
+  paddingHorizontal: 24,
+  overflow: "hidden" as const,
+} as const;
+
+const BUTTON_STYLE = {
+  flex: 1,
+  paddingVertical: 15,
+  alignItems: "center" as const,
+} as const;
 
 /**
  * A fully themed confirmation dialog that respects the app's color scheme.
@@ -37,38 +60,38 @@ export function ConfirmModal({
       onRequestClose={onCancel}
     >
       {/* Backdrop — tap outside dismisses */}
-      <Pressable style={styles.backdrop} onPress={onCancel}>
+      <Pressable style={BACKDROP_STYLE} onPress={onCancel}>
         {/* Inner card — stop taps propagating to backdrop */}
-        <Pressable style={[styles.card, { backgroundColor: colors.surface }]}
+        <Pressable style={[CARD_STYLE, { backgroundColor: colors.surface }]}
           onStartShouldSetResponder={() => true}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>
+          <SizableText size="$5" fontWeight="700" marginBottom="$2" color={colors.textPrimary}>
             {title}
-          </Text>
-          <Text style={[styles.message, { color: colors.textSecondary }]}>
+          </SizableText>
+          <SizableText size="$3" lineHeight={20} marginBottom="$5" color={colors.textSecondary}>
             {message}
-          </Text>
+          </SizableText>
 
           {/* Horizontal rule */}
-          <View style={[styles.dividerH, { backgroundColor: colors.border }]} />
+          <YStack height={0.5} marginHorizontal={-24} backgroundColor={colors.border} />
 
-          <View style={styles.buttonRow}>
+          <XStack>
             <Pressable
-              style={styles.button}
+              style={BUTTON_STYLE}
               onPress={onCancel}
               android_ripple={{ color: "rgba(0,0,0,0.06)" }}
               accessibilityRole="button"
               accessibilityLabel="Cancel"
             >
-              <Text style={[styles.cancelLabel, { color: colors.textSecondary }]}>
+              <SizableText size="$4" fontWeight="600" color={colors.textSecondary}>
                 Cancel
-              </Text>
+              </SizableText>
             </Pressable>
 
             {/* Vertical rule */}
-            <View style={[styles.dividerV, { backgroundColor: colors.border }]} />
+            <YStack width={0.5} marginVertical="$1" backgroundColor={colors.border} />
 
             <Pressable
-              style={styles.button}
+              style={BUTTON_STYLE}
               onPress={() => void onConfirm()}
               android_ripple={{
                 color: confirmDestructive
@@ -78,73 +101,17 @@ export function ConfirmModal({
               accessibilityRole="button"
               accessibilityLabel={confirmLabel}
             >
-              <Text
-                style={[
-                  styles.confirmLabel,
-                  {
-                    color: confirmDestructive
-                      ? colors.danger
-                      : colors.primary,
-                  },
-                ]}
+              <SizableText
+                size="$4"
+                fontWeight="700"
+                color={confirmDestructive ? colors.danger : colors.primary}
               >
                 {confirmLabel}
-              </Text>
+              </SizableText>
             </Pressable>
-          </View>
+          </XStack>
         </Pressable>
       </Pressable>
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 32,
-  },
-  card: {
-    width: "100%",
-    borderRadius: 20,
-    paddingTop: 28,
-    paddingHorizontal: 24,
-    overflow: "hidden",
-  },
-  title: {
-    fontSize: 17,
-    fontWeight: "700",
-    marginBottom: 10,
-  },
-  message: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 24,
-  },
-  dividerH: {
-    height: StyleSheet.hairlineWidth,
-    marginHorizontal: -24,
-  },
-  buttonRow: {
-    flexDirection: "row",
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 15,
-    alignItems: "center",
-  },
-  dividerV: {
-    width: StyleSheet.hairlineWidth,
-    marginVertical: 4,
-  },
-  cancelLabel: {
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  confirmLabel: {
-    fontSize: 15,
-    fontWeight: "700",
-  },
-});

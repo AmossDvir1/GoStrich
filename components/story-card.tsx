@@ -3,7 +3,7 @@ import { WorkoutSummary } from "@/types/workout";
 import { formatDistance, formatDuration, formatPace } from "@/utils/formatting";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { forwardRef } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import MapView, { Polyline, PROVIDER_DEFAULT } from "react-native-maps";
 
 export const STORY_WIDTH = 405;
@@ -58,7 +58,7 @@ export const StoryCard = forwardRef<View, StoryCardProps>(
           colors={["#0B1120", "#053528"]}
           start={{ x: 0.1, y: 0 }}
           end={{ x: 0.9, y: 1 }}
-          style={StyleSheet.absoluteFill}
+          style={styles.absoluteFill}
         />
 
         {/* Decorative accent glow */}
@@ -83,7 +83,7 @@ export const StoryCard = forwardRef<View, StoryCardProps>(
           {hasRoute && region ? (
             <MapView
               provider={PROVIDER_DEFAULT}
-              style={StyleSheet.absoluteFill}
+              style={styles.absoluteFill}
               initialRegion={region}
               scrollEnabled={false}
               zoomEnabled={false}
@@ -112,7 +112,7 @@ export const StoryCard = forwardRef<View, StoryCardProps>(
             colors={["transparent", "rgba(5,53,40,0.55)"]}
             start={{ x: 0, y: 0.6 }}
             end={{ x: 0, y: 1 }}
-            style={StyleSheet.absoluteFill}
+            style={styles.absoluteFill}
             pointerEvents="none"
           />
         </View>
@@ -147,15 +147,22 @@ export const StoryCard = forwardRef<View, StoryCardProps>(
 
 StoryCard.displayName = "StoryCard";
 
-const styles = StyleSheet.create({
+const styles = {
+  absoluteFill: {
+    position: "absolute" as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
   card: {
     width: STORY_WIDTH,
     height: STORY_HEIGHT,
     borderRadius: 24,
-    overflow: "hidden",
+    overflow: "hidden" as const,
   },
   accentGlow: {
-    position: "absolute",
+    position: "absolute" as const,
     width: 260,
     height: 260,
     borderRadius: 130,
@@ -167,13 +174,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingTop: 36,
     paddingBottom: 6,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
   },
   brandBadge: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
     gap: 6,
     backgroundColor: "rgba(255,255,255,0.08)",
     paddingHorizontal: 12,
@@ -186,18 +193,18 @@ const styles = StyleSheet.create({
   appName: {
     color: "#FFFFFF",
     fontSize: 15,
-    fontWeight: "800",
+    fontWeight: "800" as const,
     letterSpacing: 0.3,
   },
   dateText: {
     color: "rgba(255,255,255,0.5)",
     fontSize: 12,
-    fontWeight: "500",
+    fontWeight: "500" as const,
   },
   workoutName: {
     color: "rgba(255,255,255,0.7)",
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "600" as const,
     paddingHorizontal: 28,
     marginBottom: 14,
     marginTop: 8,
@@ -207,13 +214,13 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     height: 290,
     borderRadius: 20,
-    overflow: "hidden",
+    overflow: "hidden" as const,
     backgroundColor: "#1A2E3B",
   },
   noMapPlaceholder: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
     gap: 10,
   },
   noMapEmoji: {
@@ -222,38 +229,38 @@ const styles = StyleSheet.create({
   noMapText: {
     color: "rgba(255,255,255,0.35)",
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "500" as const,
   },
   statsContainer: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
     paddingHorizontal: 28,
     paddingTop: 8,
   },
   heroDistance: {
     color: "#FFFFFF",
     fontSize: 76,
-    fontWeight: "900",
+    fontWeight: "900" as const,
     lineHeight: 84,
     letterSpacing: -3,
   },
   heroUnit: {
     color: Colors.light.primary,
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: "700" as const,
     marginBottom: 14,
     letterSpacing: 2,
-    textTransform: "uppercase",
+    textTransform: "uppercase" as const,
   },
   statRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    width: "100%",
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    width: "100%" as const,
   },
   statCard: {
     flex: 1,
-    alignItems: "center",
+    alignItems: "center" as const,
     paddingVertical: 14,
     paddingHorizontal: 16,
     backgroundColor: "rgba(255,255,255,0.07)",
@@ -267,19 +274,19 @@ const styles = StyleSheet.create({
   statValue: {
     color: "#FFFFFF",
     fontSize: 22,
-    fontWeight: "800",
+    fontWeight: "800" as const,
     marginBottom: 4,
   },
   statLabel: {
     color: "rgba(255,255,255,0.4)",
     fontSize: 10,
-    fontWeight: "700",
+    fontWeight: "700" as const,
     letterSpacing: 1,
   },
   footer: {
     paddingHorizontal: 28,
     paddingBottom: 32,
-    alignItems: "center",
+    alignItems: "center" as const,
     gap: 10,
   },
   footerLine: {
@@ -291,7 +298,7 @@ const styles = StyleSheet.create({
   footerText: {
     color: "rgba(255,255,255,0.35)",
     fontSize: 12,
-    fontWeight: "500",
+    fontWeight: "500" as const,
     letterSpacing: 0.5,
   },
-});
+};

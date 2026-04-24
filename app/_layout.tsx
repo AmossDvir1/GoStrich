@@ -8,10 +8,9 @@ import { Redirect, Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
-import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
-import { TamaguiProvider } from "tamagui";
+import { TamaguiProvider, YStack } from "tamagui";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuthStore } from "@/stores/authStore";
@@ -66,7 +65,7 @@ export default function RootLayout() {
     >
       <GestureHandlerRootView style={{ flex: 1 }}>
         {isHydrating ? (
-          <View style={{ flex: 1, backgroundColor: "#FF6B35" }} />
+          <YStack flex={1} backgroundColor="#FF6B35" />
         ) : (
           <ThemeProvider
             value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
