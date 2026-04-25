@@ -8,7 +8,12 @@ import { shareSessionAsStory } from "@/services/sharing";
 import { useAppStore } from "@/stores/appStore";
 import { useProfileStore } from "@/stores/profileStore";
 import { useWorkoutStore } from "@/stores/workoutStore";
-import { formatDistance, formatDuration, formatPace } from "@/utils/formatting";
+import {
+    formatDistance,
+    formatDuration,
+    formatPace,
+    formatSpeed,
+} from "@/utils/formatting";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useRef, useState } from "react";
@@ -289,7 +294,7 @@ export default function SessionSummaryScreen() {
             label="Max Speed"
             value={
               workout.maxSpeed > 0
-                ? `${(unitSystem === "imperial" ? workout.maxSpeed * 2.237 : workout.maxSpeed * 3.6).toFixed(1)} ${unitSystem === "imperial" ? "mph" : "km/h"}`
+                ? formatSpeed(workout.maxSpeed * 3.6, unitSystem)
                 : "---"
             }
             c={c}

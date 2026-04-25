@@ -1,7 +1,8 @@
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAppStore } from "@/stores/appStore";
 import { WorkoutSummary } from "@/types/workout";
-import { formatDuration } from "@/utils/formatting";
+import { formatDistance, formatDuration } from "@/utils/formatting";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import { router } from "expo-router";
 import React, { useCallback } from "react";
@@ -29,9 +30,10 @@ export function SwipeableSessionRow({
 }: SwipeableSessionRowProps) {
   const scheme = useColorScheme();
   const c = Colors[scheme];
+  const unitSystem = useAppStore((s) => s.unitSystem);
   const translateX = useSharedValue(0);
   const startX = useSharedValue(0);
-  const distKm = (item.distance / 1000).toFixed(2);
+  const distanceLabel = formatDistance(item.distance, unitSystem);
   const dateStr = new Date(item.startTime).toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
@@ -144,7 +146,7 @@ export function SwipeableSessionRow({
               </XStack>
               <XStack alignItems="center" gap="$2">
                 <SizableText size="$3" fontWeight="600" color={c.primary}>
-                  {distKm} km
+                  {distanceLabel}
                 </SizableText>
                 <SizableText size="$3" color={c.border}>
                   |

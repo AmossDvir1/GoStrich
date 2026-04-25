@@ -9,14 +9,14 @@ import React, { useCallback, useEffect, useRef } from "react";
 import { LayoutChangeEvent, Pressable, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
-  cancelAnimation,
-  Easing,
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSpring,
-  withTiming,
+    cancelAnimation,
+    Easing,
+    runOnJS,
+    useAnimatedStyle,
+    useSharedValue,
+    withRepeat,
+    withSpring,
+    withTiming,
 } from "react-native-reanimated";
 import { SizableText, XStack, YStack } from "tamagui";
 
@@ -81,6 +81,8 @@ interface RunDrawerProps {
   unitSystem: "metric" | "imperial";
   locationName: string | null;
   locationReady: boolean;
+  countdownEnabled: boolean;
+  onToggleCountdown: () => void;
   onStart: () => void;
   onPause: () => void;
   onResume: () => void;
@@ -95,6 +97,8 @@ export function RunDrawer({
   unitSystem,
   locationName,
   locationReady,
+  countdownEnabled,
+  onToggleCountdown,
   onStart,
   onPause,
   onResume,
@@ -155,6 +159,11 @@ export function RunDrawer({
     onEnd();
   }, [onEnd]);
 
+  const triggerToggleCountdown = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    onToggleCountdown();
+  }, [onToggleCountdown]);
+
   // Pan gesture — only active in idle state AND when location is ready
   const panGesture = Gesture.Pan()
     .enabled(isIdle && locationReady)
@@ -191,43 +200,84 @@ export function RunDrawer({
       {/* Fixed-height top section so the button row never shifts between states */}
       <View style={{ height: 55, justifyContent: "center", marginBottom: 8 }}>
         {isIdle ? (
-          /* Location badge */
-          locationName ? (
-            <XStack
-              alignItems="center"
-              gap={7}
-              paddingHorizontal={10}
-              paddingVertical="$2"
-              borderRadius={999}
-              backgroundColor="rgba(16, 185, 129, 0.1)"
-              alignSelf="flex-start"
-            >
-              {/* Styled map-pin: filled circle + white inner dot */}
-              <YStack
-                width={10}
-                height={10}
-                borderRadius={5}
-                backgroundColor={c.primary}
+          <XStack alignItems="center" justifyContent="space-between" gap={8}>
+            {/* Location badge */}
+            {locationName ? (
+              <XStack
                 alignItems="center"
-                justifyContent="center"
+                gap={7}
+                paddingHorizontal={10}
+                paddingVertical="$2"
+                borderRadius={999}
+                backgroundColor="rgba(16, 185, 129, 0.1)"
+                alignSelf="flex-start"
+              >
+                {/* Styled map-pin: filled circle + white inner dot */}
+                <YStack
+                  width={10}
+                  height={10}
+                  borderRadius={5}
+                  backgroundColor={c.primary}
+                  alignItems="center"
+                  justifyContent="center"
+                >
+                  <YStack
+                    width={4}
+                    height={4}
+                    borderRadius={2}
+                    backgroundColor="white"
+                  />
+                </YStack>
+                <SizableText
+                  size="$3"
+                  fontWeight="600"
+                  color={c.textPrimary}
+                  numberOfLines={1}
+                >
+                  {locationName}
+                </SizableText>
+              </XStack>
+            ) : (
+              <View />
+            )}
+
+            {/* Tiny pre-run countdown mode indicator */}
+            <Pressable
+              onPress={triggerToggleCountdown}
+              accessibilityRole="button"
+              accessibilityLabel={
+                countdownEnabled ? "Turn countdown off" : "Turn countdown on"
+              }
+              hitSlop={10}
+            >
+              <XStack
+                alignItems="center"
+                gap={7}
+                paddingHorizontal={10}
+                paddingVertical="$2"
+                borderRadius={999}
+                borderWidth={1}
+                borderColor={countdownEnabled ? c.primary : c.border}
+                backgroundColor={
+                  countdownEnabled ? "rgba(16, 185, 129, 0.08)" : c.surface
+                }
               >
                 <YStack
-                  width={4}
-                  height={4}
-                  borderRadius={2}
-                  backgroundColor="white"
+                  width={10}
+                  height={10}
+                  borderRadius={5}
+                  backgroundColor={
+                    countdownEnabled ? c.primary : c.textSecondary
+                  }
+                  alignItems="center"
+                  justifyContent="center"
                 />
-              </YStack>
-              <SizableText
-                size="$3"
-                fontWeight="600"
-                color={c.textPrimary}
-                numberOfLines={1}
-              >
-                {locationName}
-              </SizableText>
-            </XStack>
-          ) : null
+                <SizableText size="$3" fontWeight="600" color={c.textSecondary}>
+                  Countdown
+                </SizableText>
+              </XStack>
+            </Pressable>
+          </XStack>
         ) : (
           /* Live metrics */
           <XStack alignItems="center">

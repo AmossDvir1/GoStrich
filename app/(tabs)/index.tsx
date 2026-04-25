@@ -1,16 +1,14 @@
-﻿import { RunDrawer } from "@/components/run-drawer";
+﻿import { RunCountdown } from "@/components/run-countdown";
+import { RunDrawer } from "@/components/run-drawer";
 import { Colors, MapStyles } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useLocation } from "@/hooks/use-location";
 import { useRunSession } from "@/hooks/use-run-session";
 import { useAppStore } from "@/stores/appStore";
-import { useProfileStore } from "@/stores/profileStore";
-import { formatPace } from "@/utils/formatting";
+import { formatPace, formatSpeed } from "@/utils/formatting";
 import { SizableText, YStack } from "tamagui";
 
-import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -53,8 +51,7 @@ const DRAG_THRESHOLD = 40; // px to trigger snap
 export default function HomeScreen() {
   const scheme = useColorScheme();
   const c = Colors[scheme];
-  const { profile } = useProfileStore();
-  const { unitSystem } = useAppStore();
+  const { unitSystem, countdownEnabled, setCountdownEnabled } = useAppStore();
 
   const {
     permissionStatus,
@@ -76,6 +73,25 @@ export default function HomeScreen() {
   } = useRunSession(locationName);
 
   const isRunning = runState === "running";
+
+  const [showCountdown, setShowCountdown] = useState(false);
+
+  const handleCountdownFinish = useCallback(() => {
+    setShowCountdown(false);
+    void handleStart();
+  }, [handleStart]);
+
+  const handleStartPress = useCallback(() => {
+    if (countdownEnabled) {
+      setShowCountdown(true);
+      return;
+    }
+    void handleStart();
+  }, [countdownEnabled, handleStart]);
+
+  const handleToggleCountdown = useCallback(() => {
+    setCountdownEnabled(!countdownEnabled);
+  }, [countdownEnabled, setCountdownEnabled]);
 
   const insets = useSafeAreaInsets();
   const mapRef = useRef<MapView>(null);
@@ -126,20 +142,16 @@ export default function HomeScreen() {
   }));
 
   const centerBtnAnimStyle = useAnimatedStyle(() => ({
-    bottom: drawerHeight.value + 16,
+    bottom: drawerHeight.value + Math.max(insets.bottom, 12) + 24,
   }));
 
   const paceSecsPerKm = distanceKm > 0 ? elapsed / distanceKm : 0;
   const avgSpeedKmh = elapsed > 0 ? distanceKm / (elapsed / 3600) : 0;
-
-  const gpsDotColor =
-    permissionStatus === "granted" && currentLocation
-      ? c.primary
-      : permissionStatus === "granted"
-        ? "#F59E0B"
-        : permissionStatus === "denied"
-          ? "#EF4444"
-          : "#9CA3AF";
+  const avgSpeedDisplay =
+    avgSpeedKmh > 0
+      ? formatSpeed(avgSpeedKmh, unitSystem, { includeUnit: false })
+      : "--";
+  const avgSpeedUnit = unitSystem === "imperial" ? "mph" : "km/h";
 
   const region = currentLocation
     ? {
@@ -150,18 +162,14 @@ export default function HomeScreen() {
       }
     : undefined;
 
-  const initials =
-    (profile.firstName.charAt(0) + profile.lastName.charAt(0)).toUpperCase() ||
-    "?";
-
   return (
     <YStack flex={1} backgroundColor={c.surface}>
-      {/* Layer 0: Map — bottom edge tracks the top of the drawer so they never overlap */}
+      {/* Layer 0: Map — fills full screen behind the floating nav */}
       <Animated.View
         style={[
           {
             position: "absolute",
-            top: insets.top,
+            top: 0,
             left: 0,
             right: 0,
           },
@@ -253,7 +261,10 @@ export default function HomeScreen() {
       {/* Layer 1b: Center-on-me button — bottom-right, above the sheet */}
       {permissionStatus === "granted" && currentLocation && (
         <Animated.View
-          style={[{ position: "absolute", right: 16 }, centerBtnAnimStyle]}
+          style={[
+            { position: "absolute", right: 16, zIndex: 15 },
+            centerBtnAnimStyle,
+          ]}
         >
           <Pressable
             onPress={() => {
@@ -305,101 +316,22 @@ export default function HomeScreen() {
         </Animated.View>
       )}
 
-      {/* Gradient fade — darkens map top so profile/GPS buttons are always legible */}
+      {/* Subtle gradient to help the glass nav read over the map */}
       <View
         pointerEvents="none"
         style={{
           position: "absolute",
-          top: insets.top,
+          top: 0,
           left: 0,
           right: 0,
-          height: 115,
+          height: insets.top + 90,
           zIndex: 5,
         }}
       >
         <LinearGradient
-          colors={["rgba(0,0,0,0.45)", "transparent"]}
+          colors={["rgba(0,0,0,0.22)", "transparent"]}
           style={{ flex: 1 }}
         />
-      </View>
-
-      {/* Layer 2: Top overlay — profile button (left) + GPS badge (right) */}
-      <View
-        style={{
-          position: "absolute",
-          top: insets.top + 10,
-          left: 16,
-          right: 16,
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-          zIndex: 10,
-        }}
-      >
-        {/* Profile avatar button */}
-        <Pressable
-          onPress={() => router.push("/profile")}
-          accessibilityRole="button"
-          accessibilityLabel="Open profile"
-          style={({ pressed }) => [
-            {
-              width: 55,
-              height: 55,
-              borderRadius: 99,
-              backgroundColor: c.surface,
-              alignItems: "center",
-              justifyContent: "center",
-              opacity: pressed ? 0.8 : 1,
-              borderWidth: 1.5,
-              borderColor: "rgba(255,255,255,0.35)",
-            },
-            PILL_SHADOW,
-          ]}
-        >
-          {profile.photoUrl ? (
-            <Image
-              source={{ uri: profile.photoUrl }}
-              style={{ width: 52, height: 52, borderRadius: 99 }}
-              contentFit="cover"
-            />
-          ) : (
-            <SizableText size="$2" fontWeight="800" color={c.textPrimary}>
-              {initials}
-            </SizableText>
-          )}
-        </Pressable>
-
-        {/* GPS badge */}
-        <View
-          style={[
-            {
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 5,
-              paddingHorizontal: 10,
-              paddingVertical: 6,
-              borderRadius: 12,
-              backgroundColor: c.surface,
-            },
-            PILL_SHADOW,
-          ]}
-        >
-          <View
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: 3.5,
-              backgroundColor: gpsDotColor,
-            }}
-          />
-          <SizableText size="$1" fontWeight="700" color={c.textSecondary}>
-            {permissionStatus === "granted" && currentLocation
-              ? "GPS"
-              : permissionStatus === "denied"
-                ? "No GPS"
-                : "GPS..."}
-          </SizableText>
-        </View>
       </View>
 
       {/* Bottom drawer — custom absolute panel, no white gap */}
@@ -408,13 +340,15 @@ export default function HomeScreen() {
           style={[
             {
               position: "absolute",
-              bottom: 0,
+              bottom: Math.max(insets.bottom, 12),
               left: 0,
               right: 0,
               backgroundColor: c.surface,
               borderTopLeftRadius: 28,
               borderTopRightRadius: 28,
-              paddingBottom: Math.max(insets.bottom, 16),
+              borderBottomLeftRadius: 0,
+              borderBottomRightRadius: 0,
+              paddingBottom: 16,
               overflow: "hidden",
             },
             DRAWER_SHADOW,
@@ -447,12 +381,20 @@ export default function HomeScreen() {
               unitSystem={unitSystem}
               locationName={locationName}
               locationReady={!!currentLocation}
-              onStart={() => void handleStart()}
+              countdownEnabled={countdownEnabled}
+              onToggleCountdown={handleToggleCountdown}
+              onStart={handleStartPress}
               onPause={handlePause}
               onResume={() => void handleResume()}
               onEnd={handleEnd}
             />
           </YStack>
+
+          {/* Countdown overlay — shown after slide, before run starts */}
+          <RunCountdown
+            visible={showCountdown}
+            onFinish={handleCountdownFinish}
+          />
 
           {/* Stats row — always rendered, hidden when collapsed via opacity */}
           <Animated.View
@@ -471,7 +413,9 @@ export default function HomeScreen() {
           >
             <YStack flex={1} alignItems="center">
               <SizableText size="$7" fontWeight="900" color={c.textPrimary}>
-                {paceSecsPerKm > 0 ? formatPace(paceSecsPerKm) : "--"}
+                {paceSecsPerKm > 0
+                  ? formatPace(paceSecsPerKm, unitSystem)
+                  : "--"}
               </SizableText>
               <SizableText
                 size="$1"
@@ -495,7 +439,7 @@ export default function HomeScreen() {
             />
             <YStack flex={1} alignItems="center">
               <SizableText size="$7" fontWeight="900" color={c.textPrimary}>
-                {avgSpeedKmh > 0 ? avgSpeedKmh.toFixed(1) : "--"}
+                {avgSpeedDisplay}
               </SizableText>
               <SizableText
                 size="$1"
@@ -505,7 +449,7 @@ export default function HomeScreen() {
                 textTransform="uppercase"
                 letterSpacing={1}
               >
-                km/h
+                {avgSpeedUnit}
               </SizableText>
             </YStack>
           </Animated.View>

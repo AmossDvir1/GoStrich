@@ -1,5 +1,6 @@
 ﻿import * as Location from "expo-location";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { AppState, type AppStateStatus } from "react-native";
 
 export type LocationPermissionStatus = "undetermined" | "granted" | "denied";
 
@@ -12,7 +13,15 @@ export interface UseLocationResult {
   locationError: string | null;
 }
 
-export function useLocation(): UseLocationResult {
+interface UseLocationOptions {
+  fetchLocationOnGranted?: boolean;
+  resolveAddress?: boolean;
+}
+
+export function useLocation(options?: UseLocationOptions): UseLocationResult {
+  const fetchLocationOnGranted = options?.fetchLocationOnGranted ?? true;
+  const resolveAddress = options?.resolveAddress ?? true;
+
   const [permissionStatus, setPermissionStatus] =
     useState<LocationPermissionStatus>("undetermined");
   const [currentLocation, setCurrentLocation] =
@@ -21,31 +30,53 @@ export function useLocation(): UseLocationResult {
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
 
+  const refreshPermissionStatus = useCallback(async () => {
+    try {
+      const { status } = await Location.getForegroundPermissionsAsync();
+      const mapped = mapStatus(status);
+      setPermissionStatus(mapped);
+
+      if (mapped === "granted" && fetchLocationOnGranted) {
+        await fetchCurrentLocation(resolveAddress);
+      } else {
+        setCurrentLocation(null);
+        setLocationName(null);
+      }
+    } catch {
+      // Keep existing state if permission lookup fails.
+    }
+  }, [fetchLocationOnGranted, resolveAddress]);
+
   // Check existing permission on mount
   useEffect(() => {
-    Location.getForegroundPermissionsAsync()
-      .then(({ status }) => {
-        const mapped = mapStatus(status);
-        setPermissionStatus(mapped);
-        if (mapped === "granted") {
-          void fetchCurrentLocation();
+    void refreshPermissionStatus();
+
+    const subscription = AppState.addEventListener(
+      "change",
+      (nextAppState: AppStateStatus) => {
+        if (nextAppState === "active") {
+          void refreshPermissionStatus();
         }
-      })
-      .catch(() => null);
-  }, []);
+      },
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [refreshPermissionStatus]);
 
   const requestPermission = async (): Promise<boolean> => {
     const { status } = await Location.requestForegroundPermissionsAsync();
     const mapped = mapStatus(status);
     setPermissionStatus(mapped);
-    if (mapped === "granted") {
-      await fetchCurrentLocation();
+    if (mapped === "granted" && fetchLocationOnGranted) {
+      await fetchCurrentLocation(resolveAddress);
       return true;
     }
-    return false;
+    return mapped === "granted";
   };
 
-  const fetchCurrentLocation = async () => {
+  const fetchCurrentLocation = async (shouldResolveAddress: boolean) => {
     setIsLoadingLocation(true);
     setLocationError(null);
     try {
@@ -53,7 +84,9 @@ export function useLocation(): UseLocationResult {
         accuracy: Location.Accuracy.Balanced,
       });
       setCurrentLocation(loc);
-      void reverseGeocode(loc.coords.latitude, loc.coords.longitude);
+      if (shouldResolveAddress) {
+        void reverseGeocode(loc.coords.latitude, loc.coords.longitude);
+      }
     } catch {
       setLocationError("Unable to get your location. Please try again.");
     } finally {
@@ -76,7 +109,7 @@ export function useLocation(): UseLocationResult {
         setLocationName(parts.length > 0 ? parts.join(", ") : null);
       }
     } catch {
-      // Silently ignore â€” location name is optional
+      // Silently ignore - location name is optional.
     }
   };
 

@@ -1,10 +1,11 @@
+import { GlobalTopNav } from "@/components/global-top-nav";
 import {
   DarkTheme,
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
-import { Redirect, Stack } from "expo-router";
+import { Redirect, Stack, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
@@ -25,10 +26,17 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const pathname = usePathname();
   const hydrate = useAuthStore((s) => s.hydrate);
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const isHydrating = useAuthStore((s) => s.isHydrating);
   const hydrateProfile = useProfileStore((s) => s.hydrate);
+
+  const showGlobalNav =
+    isLoggedIn &&
+    (pathname === "/" ||
+      pathname.includes("/history") ||
+      pathname === "/profile");
 
   const [fontsLoaded, fontError] = useFonts({
     // Montserrat fonts
@@ -98,6 +106,7 @@ export default function RootLayout() {
                 options={{ presentation: "modal", title: "Modal" }}
               />
             </Stack>
+            {showGlobalNav && <GlobalTopNav />}
             {!isLoggedIn && <Redirect href="/auth" />}
             <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
           </ThemeProvider>

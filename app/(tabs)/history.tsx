@@ -1,4 +1,5 @@
-﻿import { SwipeableSessionRow } from "@/components/swipeable-session-row";
+﻿import { GLOBAL_NAV_CLEARANCE } from "@/components/global-top-nav";
+import { SwipeableSessionRow } from "@/components/swipeable-session-row";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { ScreenWrapper } from "@/components/ui/screen-wrapper";
 import { Colors } from "@/constants/theme";
@@ -54,7 +55,7 @@ export default function HistoryScreen() {
   }, [workouts, sortBy]);
 
   return (
-    <ScreenWrapper>
+    <ScreenWrapper topPadding={GLOBAL_NAV_CLEARANCE}>
       <YStack paddingHorizontal="$6" paddingTop="$5" paddingBottom="$3">
         <SizableText size="$9" fontWeight="800" color={c.textPrimary}>
           Sessions

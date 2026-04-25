@@ -65,6 +65,20 @@ export function useRunSession(
 
   useEffect(() => () => stopTimer(), [stopTimer]);
 
+  const ensureForegroundPermission = useCallback(async (): Promise<boolean> => {
+    const current = await Location.getForegroundPermissionsAsync();
+    if (current.status === Location.PermissionStatus.GRANTED) {
+      return true;
+    }
+
+    if (!current.canAskAgain) {
+      return false;
+    }
+
+    const requested = await Location.requestForegroundPermissionsAsync();
+    return requested.status === Location.PermissionStatus.GRANTED;
+  }, []);
+
   const startGpsWatch = useCallback(async () => {
     gpsWatchRef.current = await Location.watchPositionAsync(
       {
@@ -108,6 +122,11 @@ export function useRunSession(
   }, []);
 
   const handleStart = useCallback(async () => {
+    const hasPermission = await ensureForegroundPermission();
+    if (!hasPermission) {
+      return;
+    }
+
     gpsPointsRef.current = [];
     pauseStartRef.current = null;
     pauseIntervalsRef.current = [];
@@ -119,7 +138,7 @@ export function useRunSession(
     setRunState("running");
     startTimer();
     await startGpsWatch();
-  }, [startTimer, startGpsWatch]);
+  }, [startTimer, startGpsWatch, ensureForegroundPermission]);
 
   const handlePause = useCallback(() => {
     pauseStartRef.current = Date.now();

@@ -9,10 +9,12 @@ interface AppState {
   unitSystem: UnitSystem;
   mapStyle: MapStyle;
   darkMode: boolean;
+  countdownEnabled: boolean;
 
   setUnitSystem: (system: UnitSystem) => void;
   setMapStyle: (style: MapStyle) => void;
   setDarkMode: (enabled: boolean) => void;
+  setCountdownEnabled: (enabled: boolean) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -21,10 +23,12 @@ export const useAppStore = create<AppState>()(
       unitSystem: "metric",
       mapStyle: "standard",
       darkMode: false,
+      countdownEnabled: true,
 
       setUnitSystem: (unitSystem) => set({ unitSystem }),
       setMapStyle: (mapStyle) => set({ mapStyle }),
       setDarkMode: (darkMode) => set({ darkMode }),
+      setCountdownEnabled: (countdownEnabled) => set({ countdownEnabled }),
     }),
     {
       name: "gostrich-app",

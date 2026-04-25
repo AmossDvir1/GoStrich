@@ -1,3 +1,4 @@
+import { GLOBAL_NAV_CLEARANCE } from "@/components/global-top-nav";
 import { PhotoPickerModal } from "@/components/photo-picker-modal";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { Colors } from "@/constants/theme";
@@ -5,6 +6,15 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppStore } from "@/stores/appStore";
 import { useAuthStore } from "@/stores/authStore";
 import { useProfileStore } from "@/stores/profileStore";
+import {
+  formatHeight,
+  formatWeight,
+  getHeightLabel,
+  getUnitSystemDescription,
+  getWeightLabel,
+  toMetricHeight,
+  toMetricWeight,
+} from "@/utils/formatting";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
@@ -59,55 +69,66 @@ export default function ProfileScreen() {
 
   const { user, logout } = useAuthStore();
   const { profile, save } = useProfileStore();
-  const { darkMode, setDarkMode, unitSystem, setUnitSystem } = useAppStore();
+  const {
+    darkMode,
+    setDarkMode,
+    unitSystem,
+    setUnitSystem,
+    countdownEnabled,
+    setCountdownEnabled,
+  } = useAppStore();
   const insets = useSafeAreaInsets();
 
   // Local editable state — committed on blur
   const [firstName, setFirstName] = useState(profile.firstName);
   const [lastName, setLastName] = useState(profile.lastName);
   const [weight, setWeight] = useState(
-    profile.weightKg !== null ? String(profile.weightKg) : "",
+    formatWeight(profile.weightKg, unitSystem, { includeUnit: false }),
   );
   const [height, setHeight] = useState(
-    profile.heightCm !== null ? String(profile.heightCm) : "",
+    formatHeight(profile.heightCm, unitSystem, { includeUnit: false }),
   );
   const [photoModalVisible, setPhotoModalVisible] = useState(false);
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+
+  const weightLabel = getWeightLabel(unitSystem);
+  const heightLabel = getHeightLabel(unitSystem);
+
+  const profileWeightDisplay = formatWeight(profile.weightKg, unitSystem, {
+    includeUnit: false,
+  });
+  const profileHeightDisplay = formatHeight(profile.heightCm, unitSystem, {
+    includeUnit: false,
+  });
 
   // Keep in sync if the store updates externally
   useEffect(() => {
     setFirstName(profile.firstName);
     setLastName(profile.lastName);
-    setWeight(profile.weightKg !== null ? String(profile.weightKg) : "");
-    setHeight(profile.heightCm !== null ? String(profile.heightCm) : "");
-  }, [profile]);
+    setWeight(profileWeightDisplay);
+    setHeight(profileHeightDisplay);
+  }, [profile, profileHeightDisplay, profileWeightDisplay]);
 
   const commitField = (field: keyof typeof profile, raw: string) => {
     if (field === "firstName" || field === "lastName") {
       void save({ [field]: raw.trim() });
     } else if (field === "weightKg" || field === "heightCm") {
       const num = parseFloat(raw);
-      void save({ [field]: raw.trim() === "" || isNaN(num) ? null : num });
+      if (raw.trim() === "" || isNaN(num)) {
+        void save({ [field]: null });
+        return;
+      }
+
+      const normalized =
+        field === "weightKg"
+          ? toMetricWeight(num, unitSystem)
+          : toMetricHeight(num, unitSystem);
+
+      void save({ [field]: normalized });
     }
   };
 
   const handleLogout = () => setLogoutModalVisible(true);
-
-  const handleDone = () => {
-    void save({
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      weightKg: (() => {
-        const num = parseFloat(weight);
-        return weight.trim() === "" || isNaN(num) ? null : num;
-      })(),
-      heightCm: (() => {
-        const num = parseFloat(height);
-        return height.trim() === "" || isNaN(num) ? null : num;
-      })(),
-    });
-    router.back();
-  };
 
   // Derive initials for avatar
   const initials =
@@ -192,39 +213,14 @@ export default function ProfileScreen() {
   return (
     <YStack flex={1} backgroundColor={c.background}>
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        style={{ flex: 1, marginTop: insets.top + GLOBAL_NAV_CLEARANCE }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        {/* Header row */}
-        <XStack
-          paddingHorizontal="$5"
-          paddingTop={insets.top + 12}
-          paddingBottom="$3"
-          alignItems="center"
-          justifyContent="space-between"
-          borderBottomWidth={1}
-          borderBottomColor={c.border}
-        >
-          <SizableText size="$5" fontWeight="700" color={c.textPrimary}>
-            Profile
-          </SizableText>
-          <Pressable
-            onPress={handleDone}
-            hitSlop={12}
-            accessibilityRole="button"
-            accessibilityLabel="Close"
-          >
-            <SizableText size="$4" fontWeight="600" color={c.primary}>
-              Done
-            </SizableText>
-          </Pressable>
-        </XStack>
-
         <ScrollView
           contentContainerStyle={{
             paddingHorizontal: 20,
             paddingBottom: Math.max(insets.bottom + 24, 48),
-            paddingTop: 28,
+            paddingTop: 12,
             gap: 4,
           }}
           keyboardShouldPersistTaps="handled"
@@ -331,7 +327,7 @@ export default function ProfileScreen() {
             overflow="hidden"
           >
             <FieldRow
-              label="Weight (kg)"
+              label={weightLabel}
               value={weight}
               placeholder="Optional"
               onChangeText={setWeight}
@@ -341,7 +337,7 @@ export default function ProfileScreen() {
             />
             <Divider color={c.border} />
             <FieldRow
-              label="Height (cm)"
+              label={heightLabel}
               value={height}
               placeholder="Optional"
               onChangeText={setHeight}
@@ -400,12 +396,32 @@ export default function ProfileScreen() {
             >
               <YStack>
                 <SizableText size="$4" fontWeight="500" color={c.textPrimary}>
+                  Pre-Run Countdown
+                </SizableText>
+                <SizableText size="$3" marginTop="$0.5" color={c.textSecondary}>
+                  {countdownEnabled ? "On (3..2..1..GO!)" : "Off"}
+                </SizableText>
+              </YStack>
+              <Switch
+                value={countdownEnabled}
+                onValueChange={setCountdownEnabled}
+                trackColor={{ false: c.border, true: c.primary }}
+                thumbColor="#fff"
+              />
+            </XStack>
+            <Divider color={c.border} />
+            <XStack
+              paddingHorizontal="$4"
+              paddingVertical="$4"
+              alignItems="center"
+              justifyContent="space-between"
+            >
+              <YStack>
+                <SizableText size="$4" fontWeight="500" color={c.textPrimary}>
                   Unit System
                 </SizableText>
                 <SizableText size="$3" marginTop="$0.5" color={c.textSecondary}>
-                  {unitSystem === "metric"
-                    ? "Metric (km, kg)"
-                    : "Imperial (mi, lb)"}
+                  {getUnitSystemDescription(unitSystem)}
                 </SizableText>
               </YStack>
               <Switch
