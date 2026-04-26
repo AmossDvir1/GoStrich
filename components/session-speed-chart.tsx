@@ -179,7 +179,7 @@ export function SessionSpeedChart({
   const midLabelOpacity = showOverlay && !midSameAsEdge ? 1 : 0;
 
   // Y-axis label background (matches surface so labels are readable over grid lines)
-  const yLabelBg = scheme === "dark" ? "#1E293B" : "#FFFFFF";
+  const yLabelBg = c.surface;
 
   // Floating tooltip inside SVG — single string to avoid SVG whitespace-collapse bug
   const cx = toX(highlightPoint.t);
@@ -195,7 +195,7 @@ export function SessionSpeedChart({
   if (tipY < plotTop + 2) tipY = cy + 14;
   // Pill background: matches surface, semi-transparent so chart shows through
   const tipBg =
-    scheme === "dark" ? "rgba(30,41,59,0.82)" : "rgba(255,255,255,0.88)";
+    scheme === "dark" ? "rgba(42,42,58,0.82)" : "rgba(255,255,255,0.88)";
 
   return (
     <YStack

@@ -11,10 +11,10 @@ import React, { useEffect, useRef, useState } from "react";
 import { LayoutChangeEvent, Pressable, StyleSheet, View } from "react-native";
 import { GlassEffectView } from "react-native-glass-effect-view";
 import Animated, {
-    Easing,
-    useAnimatedStyle,
-    useSharedValue,
-    withTiming,
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SizableText, YStack } from "tamagui";
@@ -124,20 +124,18 @@ export function GlobalTopNav() {
 
   const gpsDotColor =
     permissionStatus === "granted"
-      ? c.primary
+      ? c.success
       : permissionStatus === "denied"
-        ? "#EF4444"
-        : "#9CA3AF";
+        ? c.danger
+        : c.border;
 
   const glassGradient: [string, string] =
     scheme === "dark"
-      ? ["rgba(15, 28, 50, 0.92)", "rgba(8, 16, 32, 0.88)"]
-      : ["rgba(255, 255, 255, 0.92)", "rgba(248, 250, 252, 0.86)"];
+      ? ["rgb(24, 22, 38)", "rgb(18, 16, 30)"]
+      : ["rgb(244, 247, 250)", "rgb(232, 240, 245)"];
 
   const glassBorder =
-    scheme === "dark"
-      ? "rgba(255, 255, 255, 0.18)"
-      : "rgba(255, 255, 255, 0.96)";
+    scheme === "dark" ? "rgba(255, 255, 255, 0.12)" : "rgb(223, 231, 236)";
 
   const liquidGlassTint =
     scheme === "dark" ? "rgba(12, 24, 42, 0.3)" : "rgba(255, 255, 255, 0.34)";
@@ -148,22 +146,16 @@ export function GlobalTopNav() {
       : ["rgba(255, 255, 255, 0.85)", "rgba(255, 255, 255, 0.40)"];
 
   const activePillColors: [string, string] =
-    scheme === "dark"
-      ? ["rgba(255, 255, 255, 0.14)", "rgba(255, 255, 255, 0.64)"]
-      : ["rgba(255, 255, 255, 1)", "rgba(255, 255, 255, 1)"];
+    scheme === "dark" ? [c.primary, c.primary] : [c.primary, c.primary];
 
-  const activePillBorder =
-    scheme === "dark"
-      ? "rgba(255, 255, 255, 0.22)"
-      : "rgba(255, 255, 255, 0.98)";
+  const activePillBorder = scheme === "dark" ? c.primary : c.primary;
 
   const activePillShadowOpacity = scheme === "dark" ? 0.18 : 0.2;
 
-  const activeLabelColor = scheme === "dark" ? "#ECFDF5" : "#0F172A";
-  const inactiveLabelColor =
-    scheme === "dark" ? "rgba(226, 232, 240, 0.78)" : "rgba(51, 65, 85, 0.72)";
+  const activeLabelColor = scheme === "light" ? "#FFFFFF" : c.textPrimary;
+  const inactiveLabelColor = c.textSecondary;
 
-  const shouldUseGlassEffect = true;
+  const shouldUseGlassEffect = false;
 
   const onItemLayout =
     (item: NavItem) =>
@@ -189,17 +181,14 @@ export function GlobalTopNav() {
         break;
       case "run":
         if (isOnProfileModal) {
-          router.back();
+          router.replace("/");
           break;
         }
         if (activeItem !== "run") router.navigate("/");
         break;
       case "sessions":
         if (isOnProfileModal) {
-          router.back();
-          setTimeout(() => {
-            router.navigate("/history");
-          }, 0);
+          router.replace("/history");
           break;
         }
         if (activeItem !== "sessions") router.navigate("/history");
@@ -224,7 +213,7 @@ export function GlobalTopNav() {
         <View
           style={{
             borderRadius: 40,
-            shadowColor: "#000",
+            shadowColor: c.textPrimary,
             shadowOpacity: scheme === "dark" ? 0.28 : 0.1,
             shadowRadius: 18,
             shadowOffset: { width: 0, height: 4 },
@@ -264,7 +253,7 @@ export function GlobalTopNav() {
                     overflow: "hidden",
                     borderWidth: 1,
                     borderColor: activePillBorder,
-                    shadowColor: "#FFFFFF",
+                    shadowColor: c.surface,
                     shadowOpacity: activePillShadowOpacity,
                     shadowRadius: 8,
                     shadowOffset: { width: 0, height: 1 },
@@ -327,7 +316,9 @@ export function GlobalTopNav() {
                         size="$2"
                         fontWeight="800"
                         color={
-                          activeItem === "profile" ? c.primary : c.textSecondary
+                          activeItem === "profile"
+                            ? activeLabelColor
+                            : c.textSecondary
                         }
                       >
                         {initials}
@@ -460,7 +451,7 @@ export function GlobalTopNav() {
                     overflow: "hidden",
                     borderWidth: 1,
                     borderColor: activePillBorder,
-                    shadowColor: "#FFFFFF",
+                    shadowColor: c.surface,
                     shadowOpacity: activePillShadowOpacity,
                     shadowRadius: 8,
                     shadowOffset: { width: 0, height: 1 },

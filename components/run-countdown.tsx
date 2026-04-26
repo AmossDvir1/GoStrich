@@ -81,7 +81,7 @@ export function RunCountdown({ visible, onFinish }: RunCountdownProps) {
               style={{
                 fontSize: remainingTime === 0 ? 52 : 72,
                 fontWeight: "900",
-                color: remainingTime === 0 ? c.primary : "#FFFFFF",
+                color: remainingTime === 0 ? c.primary : c.textPrimary,
                 letterSpacing: remainingTime === 0 ? 2 : 0,
               }}
             >
@@ -108,7 +108,7 @@ export function RunCountdown({ visible, onFinish }: RunCountdownProps) {
         >
           <Text
             style={{
-              color: "#FFFFFF",
+              color: c.textPrimary,
               fontSize: 15,
               fontWeight: "700",
               letterSpacing: 0.4,

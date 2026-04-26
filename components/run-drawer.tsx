@@ -1,4 +1,4 @@
-﻿import { RunnerCharacter } from "@/components/ui/runner-character";
+import { RunnerCharacter } from "@/components/ui/runner-character";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { RunState } from "@/hooks/use-run-session";
@@ -9,14 +9,14 @@ import React, { useCallback, useEffect, useRef } from "react";
 import { LayoutChangeEvent, Pressable, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
-    cancelAnimation,
-    Easing,
-    runOnJS,
-    useAnimatedStyle,
-    useSharedValue,
-    withRepeat,
-    withSpring,
-    withTiming,
+  cancelAnimation,
+  Easing,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSpring,
+  withTiming,
 } from "react-native-reanimated";
 import { SizableText, XStack, YStack } from "tamagui";
 
@@ -31,7 +31,6 @@ const SLIDE_THRESHOLD = 0.75; // fraction of max to trigger start
 const SPRING = { damping: 23, stiffness: 450, mass: 0.9 } as const;
 
 const THUMB_SHADOW = {
-  shadowColor: "#000",
   shadowOpacity: 0.15,
   shadowRadius: 8,
   shadowOffset: { width: 0, height: 4 },
@@ -459,6 +458,7 @@ export function RunDrawer({
             style={[
               thumbAnimStyle,
               THUMB_SHADOW,
+              { shadowColor: c.textPrimary },
               {
                 position: "absolute",
                 top: 0,
@@ -466,7 +466,7 @@ export function RunDrawer({
                 width: THUMB_SIZE,
                 height: THUMB_SIZE,
                 borderRadius: THUMB_SIZE / 2,
-                backgroundColor: "#EDE8DF",
+                backgroundColor: c.background,
                 overflow: "hidden",
                 borderWidth: 2,
                 borderColor: "white",

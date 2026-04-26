@@ -17,6 +17,7 @@ import {
 } from "@/utils/formatting";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -32,21 +33,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SizableText, XStack, YStack } from "tamagui";
 
-const AVATAR_PRESSABLE_STYLE = {
-  width: 80,
-  height: 80,
-  borderRadius: 40,
-  alignSelf: "center" as const,
-  alignItems: "center" as const,
-  justifyContent: "center" as const,
-  overflow: "hidden" as const,
-} as const;
-
-const AVATAR_IMAGE_STYLE = {
-  width: 80,
-  height: 80,
-  borderRadius: 40,
-} as const;
+const AVATAR_SIZE = 108;
+const AVATAR_LABEL_GAP = 10;
 
 const LOGOUT_PRESSABLE_STYLE = {
   marginTop: 24,
@@ -76,6 +64,7 @@ export default function ProfileScreen() {
     setUnitSystem,
     countdownEnabled,
     setCountdownEnabled,
+    themeVariant,
   } = useAppStore();
   const insets = useSafeAreaInsets();
 
@@ -157,13 +146,11 @@ export default function ProfileScreen() {
         (i) => void handlePhotoAction(i, !!profile.photoUrl),
       );
     } else {
-      // Android: use custom modal
       setPhotoModalVisible(true);
     }
   };
 
   const handlePhotoAction = async (index: number, hasPhoto: boolean) => {
-    // If user cancelled (index 3 on iOS if hasPhoto, 2 otherwise)
     if (index === (hasPhoto ? 3 : 2)) return;
 
     if (index === 0) await pickFromLibrary();
@@ -218,242 +205,329 @@ export default function ProfileScreen() {
       >
         <ScrollView
           contentContainerStyle={{
-            paddingHorizontal: 20,
             paddingBottom: Math.max(insets.bottom + 24, 48),
-            paddingTop: 12,
-            gap: 4,
           }}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Avatar — tap to change */}
-          <Pressable
-            onPress={handleChangePhoto}
-            style={[AVATAR_PRESSABLE_STYLE, { backgroundColor: c.primary }]}
-            accessibilityRole="button"
-            accessibilityLabel="Change profile photo"
-          >
-            {profile.photoUrl ? (
-              <Image
-                source={{ uri: profile.photoUrl }}
-                style={AVATAR_IMAGE_STYLE}
-                contentFit="cover"
-              />
-            ) : (
-              <SizableText color="white" fontSize={30} fontWeight="800">
-                {initials}
-              </SizableText>
-            )}
-          </Pressable>
-          <SizableText
-            size="$3"
-            fontWeight="600"
-            textAlign="center"
-            marginTop="$2"
-            marginBottom="$2"
-            color={c.primary}
-          >
-            {profile.photoUrl ? "Change photo" : "Add profile photo"}
-          </SizableText>
-
-          {/* ── Identity ─────────────────────────────────────── */}
-          <SizableText
-            size="$2"
-            fontWeight="700"
-            marginTop="$4"
-            marginBottom="$1.5"
-            marginLeft="$1"
-            color={c.textSecondary}
-            style={{ letterSpacing: 1.2 }}
-          >
-            IDENTITY
-          </SizableText>
-          <YStack
-            borderRadius="$4"
-            borderWidth={1}
-            borderColor={c.border}
-            backgroundColor={c.surface}
-            overflow="hidden"
-          >
-            <FieldRow
-              label="First name"
-              value={firstName}
-              placeholder="Add first name"
-              onChangeText={setFirstName}
-              onBlur={() => commitField("firstName", firstName)}
-              c={c}
-            />
-            <Divider color={c.border} />
-            <FieldRow
-              label="Last name"
-              value={lastName}
-              placeholder="Add last name"
-              onChangeText={setLastName}
-              onBlur={() => commitField("lastName", lastName)}
-              c={c}
-            />
-            <Divider color={c.border} />
-            <XStack
-              paddingHorizontal="$4"
-              paddingVertical="$4"
-              alignItems="center"
-              justifyContent="space-between"
+          {/* Avatar */}
+          <YStack alignItems="center" paddingTop="$5" paddingBottom="$2">
+            <Pressable
+              onPress={handleChangePhoto}
+              style={{
+                width: AVATAR_SIZE,
+                height: AVATAR_SIZE,
+                borderRadius: AVATAR_SIZE / 2,
+                overflow: "hidden",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: c.primary,
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Change profile photo"
             >
-              <SizableText size="$4" fontWeight="500" color={c.textSecondary}>
-                Email
-              </SizableText>
-              <SizableText size="$4" color={c.textPrimary}>
-                {user?.email ?? "—"}
-              </SizableText>
-            </XStack>
-          </YStack>
-
-          {/* ── Physical stats ───────────────────────────────── */}
-          <SizableText
-            size="$2"
-            fontWeight="700"
-            marginTop="$4"
-            marginBottom="$1.5"
-            marginLeft="$1"
-            color={c.textSecondary}
-            style={{ letterSpacing: 1.2 }}
-          >
-            PHYSICAL STATS
-          </SizableText>
-          <YStack
-            borderRadius="$4"
-            borderWidth={1}
-            borderColor={c.border}
-            backgroundColor={c.surface}
-            overflow="hidden"
-          >
-            <FieldRow
-              label={weightLabel}
-              value={weight}
-              placeholder="Optional"
-              onChangeText={setWeight}
-              onBlur={() => commitField("weightKg", weight)}
-              keyboardType="decimal-pad"
-              c={c}
-            />
-            <Divider color={c.border} />
-            <FieldRow
-              label={heightLabel}
-              value={height}
-              placeholder="Optional"
-              onChangeText={setHeight}
-              onBlur={() => commitField("heightCm", height)}
-              keyboardType="decimal-pad"
-              c={c}
-            />
-          </YStack>
-
-          {/* ── App settings ─────────────────────────────────── */}
-          <SizableText
-            size="$2"
-            fontWeight="700"
-            marginTop="$4"
-            marginBottom="$1.5"
-            marginLeft="$1"
-            color={c.textSecondary}
-            style={{ letterSpacing: 1.2 }}
-          >
-            SETTINGS
-          </SizableText>
-          <YStack
-            borderRadius="$4"
-            borderWidth={1}
-            borderColor={c.border}
-            backgroundColor={c.surface}
-            overflow="hidden"
-          >
-            <XStack
-              paddingHorizontal="$4"
-              paddingVertical="$4"
-              alignItems="center"
-              justifyContent="space-between"
+              {profile.photoUrl ? (
+                <Image
+                  source={{ uri: profile.photoUrl }}
+                  style={{ width: "100%", height: "100%" }}
+                  contentFit="cover"
+                />
+              ) : (
+                <SizableText color="white" fontSize={34} fontWeight="800">
+                  {initials}
+                </SizableText>
+              )}
+            </Pressable>
+            <SizableText
+              size="$3"
+              fontWeight="600"
+              textAlign="center"
+              marginTop={AVATAR_LABEL_GAP}
+              color={c.primary}
             >
-              <YStack>
-                <SizableText size="$4" fontWeight="500" color={c.textPrimary}>
-                  Dark Mode
-                </SizableText>
-                <SizableText size="$3" marginTop="$0.5" color={c.textSecondary}>
-                  {darkMode ? "On" : "Following system"}
-                </SizableText>
-              </YStack>
-              <Switch
-                value={darkMode}
-                onValueChange={setDarkMode}
-                trackColor={{ false: c.border, true: c.primary }}
-                thumbColor="#fff"
-              />
-            </XStack>
-            <Divider color={c.border} />
-            <XStack
-              paddingHorizontal="$4"
-              paddingVertical="$4"
-              alignItems="center"
-              justifyContent="space-between"
-            >
-              <YStack>
-                <SizableText size="$4" fontWeight="500" color={c.textPrimary}>
-                  Pre-Run Countdown
-                </SizableText>
-                <SizableText size="$3" marginTop="$0.5" color={c.textSecondary}>
-                  {countdownEnabled ? "On (3..2..1..GO!)" : "Off"}
-                </SizableText>
-              </YStack>
-              <Switch
-                value={countdownEnabled}
-                onValueChange={setCountdownEnabled}
-                trackColor={{ false: c.border, true: c.primary }}
-                thumbColor="#fff"
-              />
-            </XStack>
-            <Divider color={c.border} />
-            <XStack
-              paddingHorizontal="$4"
-              paddingVertical="$4"
-              alignItems="center"
-              justifyContent="space-between"
-            >
-              <YStack>
-                <SizableText size="$4" fontWeight="500" color={c.textPrimary}>
-                  Unit System
-                </SizableText>
-                <SizableText size="$3" marginTop="$0.5" color={c.textSecondary}>
-                  {getUnitSystemDescription(unitSystem)}
-                </SizableText>
-              </YStack>
-              <Switch
-                value={unitSystem === "imperial"}
-                onValueChange={(v) => setUnitSystem(v ? "imperial" : "metric")}
-                trackColor={{ false: c.border, true: c.primary }}
-                thumbColor="#fff"
-              />
-            </XStack>
-          </YStack>
-
-          {/* ── Log out ──────────────────────────────────────── */}
-          <Pressable
-            onPress={handleLogout}
-            style={[LOGOUT_PRESSABLE_STYLE, { borderColor: c.danger }]}
-            accessibilityRole="button"
-            accessibilityLabel="Log out"
-          >
-            <SizableText size="$4" fontWeight="700" color={c.danger}>
-              Log out
+              {profile.photoUrl ? "Change photo" : "Add profile photo"}
             </SizableText>
-          </Pressable>
+          </YStack>
 
-          <SizableText
-            size="$2"
-            textAlign="center"
-            marginTop="$5"
-            color={c.border}
-          >
-            GoStrich v1.0.0 · 100% Offline-First
-          </SizableText>
+          {/* Form sections */}
+          <YStack paddingHorizontal={20} gap={4}>
+            {/* Identity */}
+            <SizableText
+              size="$2"
+              fontWeight="700"
+              marginTop="$4"
+              marginBottom="$1.5"
+              marginLeft="$1"
+              color={c.textSecondary}
+              style={{ letterSpacing: 1.2 }}
+            >
+              IDENTITY
+            </SizableText>
+            <YStack
+              borderRadius="$4"
+              borderWidth={1}
+              borderColor={c.border}
+              backgroundColor={c.surface}
+              overflow="hidden"
+            >
+              <FieldRow
+                label="First name"
+                value={firstName}
+                placeholder="Add first name"
+                onChangeText={setFirstName}
+                onBlur={() => commitField("firstName", firstName)}
+                c={c}
+              />
+              <Divider color={c.border} />
+              <FieldRow
+                label="Last name"
+                value={lastName}
+                placeholder="Add last name"
+                onChangeText={setLastName}
+                onBlur={() => commitField("lastName", lastName)}
+                c={c}
+              />
+              <Divider color={c.border} />
+              <XStack
+                paddingHorizontal="$4"
+                paddingVertical="$4"
+                alignItems="center"
+                justifyContent="space-between"
+              >
+                <SizableText size="$4" fontWeight="500" color={c.textSecondary}>
+                  Email
+                </SizableText>
+                <SizableText size="$4" color={c.textPrimary}>
+                  {user?.email ?? "—"}
+                </SizableText>
+              </XStack>
+            </YStack>
+
+            {/* Physical stats */}
+            <SizableText
+              size="$2"
+              fontWeight="700"
+              marginTop="$4"
+              marginBottom="$1.5"
+              marginLeft="$1"
+              color={c.textSecondary}
+              style={{ letterSpacing: 1.2 }}
+            >
+              PHYSICAL STATS
+            </SizableText>
+            <YStack
+              borderRadius="$4"
+              borderWidth={1}
+              borderColor={c.border}
+              backgroundColor={c.surface}
+              overflow="hidden"
+            >
+              <FieldRow
+                label={weightLabel}
+                value={weight}
+                placeholder="Optional"
+                onChangeText={setWeight}
+                onBlur={() => commitField("weightKg", weight)}
+                keyboardType="decimal-pad"
+                c={c}
+              />
+              <Divider color={c.border} />
+              <FieldRow
+                label={heightLabel}
+                value={height}
+                placeholder="Optional"
+                onChangeText={setHeight}
+                onBlur={() => commitField("heightCm", height)}
+                keyboardType="decimal-pad"
+                c={c}
+              />
+            </YStack>
+
+            {/* Settings */}
+            <SizableText
+              size="$2"
+              fontWeight="700"
+              marginTop="$4"
+              marginBottom="$1.5"
+              marginLeft="$1"
+              color={c.textSecondary}
+              style={{ letterSpacing: 1.2 }}
+            >
+              SETTINGS
+            </SizableText>
+            <YStack
+              borderRadius="$4"
+              borderWidth={1}
+              borderColor={c.border}
+              backgroundColor={c.surface}
+              overflow="hidden"
+            >
+              <XStack
+                paddingHorizontal="$4"
+                paddingVertical="$4"
+                alignItems="center"
+                justifyContent="space-between"
+              >
+                <YStack>
+                  <SizableText size="$4" fontWeight="500" color={c.textPrimary}>
+                    Dark Mode
+                  </SizableText>
+                  <SizableText
+                    size="$3"
+                    marginTop="$0.5"
+                    color={c.textSecondary}
+                  >
+                    {darkMode ? "On" : "Following system"}
+                  </SizableText>
+                </YStack>
+                <Switch
+                  value={darkMode}
+                  onValueChange={setDarkMode}
+                  trackColor={{ false: c.border, true: c.primary }}
+                  thumbColor={scheme === "dark" ? c.textPrimary : c.surface}
+                />
+              </XStack>
+              <Divider color={c.border} />
+              <XStack
+                paddingHorizontal="$4"
+                paddingVertical="$4"
+                alignItems="center"
+                justifyContent="space-between"
+              >
+                <YStack>
+                  <SizableText size="$4" fontWeight="500" color={c.textPrimary}>
+                    Pre-Run Countdown
+                  </SizableText>
+                  <SizableText
+                    size="$3"
+                    marginTop="$0.5"
+                    color={c.textSecondary}
+                  >
+                    {countdownEnabled ? "On (3..2..1..GO!)" : "Off"}
+                  </SizableText>
+                </YStack>
+                <Switch
+                  value={countdownEnabled}
+                  onValueChange={setCountdownEnabled}
+                  trackColor={{ false: c.border, true: c.primary }}
+                  thumbColor={scheme === "dark" ? c.textPrimary : c.surface}
+                />
+              </XStack>
+              <Divider color={c.border} />
+              <XStack
+                paddingHorizontal="$4"
+                paddingVertical="$4"
+                alignItems="center"
+                justifyContent="space-between"
+              >
+                <YStack>
+                  <SizableText size="$4" fontWeight="500" color={c.textPrimary}>
+                    Unit System
+                  </SizableText>
+                  <SizableText
+                    size="$3"
+                    marginTop="$0.5"
+                    color={c.textSecondary}
+                  >
+                    {getUnitSystemDescription(unitSystem)}
+                  </SizableText>
+                </YStack>
+                <Switch
+                  value={unitSystem === "imperial"}
+                  onValueChange={(v) =>
+                    setUnitSystem(v ? "imperial" : "metric")
+                  }
+                  trackColor={{ false: c.border, true: c.primary }}
+                  thumbColor={scheme === "dark" ? c.textPrimary : c.surface}
+                />
+              </XStack>
+            </YStack>
+
+            {/* Theme */}
+            <SizableText
+              size="$2"
+              fontWeight="700"
+              marginTop="$4"
+              marginBottom="$1.5"
+              marginLeft="$1"
+              color={c.textSecondary}
+              style={{ letterSpacing: 1.2 }}
+            >
+              THEME
+            </SizableText>
+            <YStack
+              borderRadius="$4"
+              borderWidth={1}
+              borderColor={c.border}
+              backgroundColor={c.surface}
+              overflow="hidden"
+            >
+              <Pressable
+                onPress={() => router.push("/theme")}
+                accessibilityRole="button"
+                accessibilityLabel="Open theme settings"
+                style={{ paddingHorizontal: 16, paddingVertical: 16 }}
+              >
+                <XStack alignItems="center" justifyContent="space-between">
+                  <YStack>
+                    <SizableText
+                      size="$4"
+                      fontWeight="500"
+                      color={c.textPrimary}
+                    >
+                      Theme
+                    </SizableText>
+                    <SizableText
+                      size="$3"
+                      marginTop="$0.5"
+                      color={c.textSecondary}
+                    >
+                      {themeVariant === "ostrich"
+                        ? "Ostrich (default)"
+                        : "Classic"}
+                    </SizableText>
+                  </YStack>
+                  <SizableText size="$6" color={c.primary}>
+                    {">"}
+                  </SizableText>
+                </XStack>
+              </Pressable>
+            </YStack>
+
+            {/* Log out */}
+            <Pressable
+              onPress={handleLogout}
+              style={[LOGOUT_PRESSABLE_STYLE, { borderColor: c.danger }]}
+              accessibilityRole="button"
+              accessibilityLabel="Log out"
+            >
+              <SizableText size="$4" fontWeight="700" color={c.danger}>
+                Log out
+              </SizableText>
+            </Pressable>
+
+            <SizableText
+              size="$2"
+              textAlign="center"
+              marginTop="$5"
+              color={c.border}
+            >
+              GoStrich v1.0.0 · 100% Offline-First
+            </SizableText>
+          </YStack>
         </ScrollView>
+
+        {/* Soft fade between nav bar bottom edge and scroll content */}
+        <LinearGradient
+          colors={[c.background, "transparent"]}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 18,
+            pointerEvents: "none",
+          }}
+        />
       </KeyboardAvoidingView>
 
       {/* Photo picker modal */}
@@ -495,7 +569,7 @@ export default function ProfileScreen() {
   );
 }
 
-// ── Sub-components ──────────────────────────────────────────────────────────
+// Sub-components
 
 type ThemeColors = (typeof Colors)["light"];
 

@@ -55,7 +55,7 @@ export const StoryCard = forwardRef<View, StoryCardProps>(
     return (
       <View ref={ref} style={styles.card} collapsable={false}>
         <LinearGradient
-          colors={["#0B1120", "#053528"]}
+          colors={[Colors.dark.background, Colors.dark.success]}
           start={{ x: 0.1, y: 0 }}
           end={{ x: 0.9, y: 1 }}
           style={styles.absoluteFill}
@@ -191,7 +191,7 @@ const styles = {
     fontSize: 16,
   },
   appName: {
-    color: "#FFFFFF",
+    color: Colors.dark.textPrimary,
     fontSize: 15,
     fontWeight: "800" as const,
     letterSpacing: 0.3,
@@ -215,7 +215,7 @@ const styles = {
     height: 290,
     borderRadius: 20,
     overflow: "hidden" as const,
-    backgroundColor: "#1A2E3B",
+    backgroundColor: Colors.dark.surface,
   },
   noMapPlaceholder: {
     flex: 1,
@@ -239,7 +239,7 @@ const styles = {
     paddingTop: 8,
   },
   heroDistance: {
-    color: "#FFFFFF",
+    color: Colors.dark.textPrimary,
     fontSize: 76,
     fontWeight: "900" as const,
     lineHeight: 84,
@@ -272,7 +272,7 @@ const styles = {
     width: 10,
   },
   statValue: {
-    color: "#FFFFFF",
+    color: Colors.dark.textPrimary,
     fontSize: 22,
     fontWeight: "800" as const,
     marginBottom: 4,

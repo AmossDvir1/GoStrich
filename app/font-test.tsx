@@ -128,7 +128,7 @@ export default function FontTestScreen() {
             style={{
               fontSize: 16,
               fontWeight: "600",
-              color: "#FFFFFF",
+              color: colors.surface,
               textAlign: "center",
             }}
           >

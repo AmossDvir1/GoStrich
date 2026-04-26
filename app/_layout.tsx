@@ -1,3 +1,4 @@
+import { ActiveRunIndicator } from "@/components/active-run-indicator";
 import { GlobalTopNav } from "@/components/global-top-nav";
 import {
   DarkTheme,
@@ -13,7 +14,9 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import { TamaguiProvider, YStack } from "tamagui";
 
+import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAppStore } from "@/stores/appStore";
 import { useAuthStore } from "@/stores/authStore";
 import { useProfileStore } from "@/stores/profileStore";
 import appTamaguiConfig from "../tamagui.config";
@@ -26,7 +29,10 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const scheme = colorScheme ?? "light";
+  const c = Colors[scheme];
   const pathname = usePathname();
+  const themeVariant = useAppStore((s) => s.themeVariant);
   const hydrate = useAuthStore((s) => s.hydrate);
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const isHydrating = useAuthStore((s) => s.isHydrating);
@@ -78,14 +84,21 @@ export default function RootLayout() {
     return null;
   }
 
+  const tamaguiThemeName = `${themeVariant}_${scheme}` as
+    | "ostrich_light"
+    | "ostrich_dark"
+    | "classic_light"
+    | "classic_dark";
+
   return (
     <TamaguiProvider
+      key={tamaguiThemeName}
       config={appTamaguiConfig}
-      defaultTheme={colorScheme ?? "light"}
+      defaultTheme={tamaguiThemeName}
     >
       <GestureHandlerRootView style={{ flex: 1 }}>
         {isHydrating ? (
-          <YStack flex={1} backgroundColor="#FF6B35" />
+          <YStack flex={1} backgroundColor={c.background} />
         ) : (
           <ThemeProvider
             value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
@@ -102,11 +115,20 @@ export default function RootLayout() {
                 options={{ headerShown: false, animation: "slide_from_bottom" }}
               />
               <Stack.Screen
+                name="palette"
+                options={{ presentation: "modal", headerShown: false }}
+              />
+              <Stack.Screen
+                name="theme"
+                options={{ presentation: "modal", headerShown: false }}
+              />
+              <Stack.Screen
                 name="modal"
                 options={{ presentation: "modal", title: "Modal" }}
               />
             </Stack>
             {showGlobalNav && <GlobalTopNav />}
+            {isLoggedIn && <ActiveRunIndicator />}
             {!isLoggedIn && <Redirect href="/auth" />}
             <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
           </ThemeProvider>

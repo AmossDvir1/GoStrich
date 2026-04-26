@@ -103,34 +103,34 @@ const animations = createAnimations({
 const tokens = createTokens({
   color: {
     // Light palette
-    backgroundLight: "#F8FAFC",
+    backgroundLight: "#F5F3EC",
     surfaceLight: "#FFFFFF",
-    textPrimaryLight: "#0F172A",
-    textSecondaryLight: "#64748B",
-    primaryLight: "#10B981",
+    textPrimaryLight: "#38384E",
+    textSecondaryLight: "#64647C",
+    primaryLight: "#F38D88",
     dangerLight: "#EF4444",
-    warningLight: "#F59E0B",
-    borderLight: "#E2E8F0",
-    mapPathLight: "#3B82F6",
-    illustrationSkinLight: "#FCD34D",
-    illustrationShirtLight: "#0F172A",
-    illustrationPantsLight: "#94A3B8",
-    illustrationAccentLight: "#10B981",
+    warningLight: "#FDB32B",
+    borderLight: "#E2DFD8",
+    mapPathLight: "#F38D88",
+    illustrationSkinLight: "#FDB32B",
+    illustrationShirtLight: "#38384E",
+    illustrationPantsLight: "#64647C",
+    illustrationAccentLight: "#F38D88",
 
     // Dark palette
-    backgroundDark: "#0B1120",
-    surfaceDark: "#1E293B",
-    textPrimaryDark: "#F8FAFC",
-    textSecondaryDark: "#94A3B8",
-    primaryDark: "#059669",
-    dangerDark: "#DC2626",
-    warningDark: "#D97706",
-    borderDark: "#334155",
-    mapPathDark: "#06B6D4",
-    illustrationSkinDark: "#FDE68A",
-    illustrationShirtDark: "#06B6D4",
-    illustrationPantsDark: "#0F172A",
-    illustrationAccentDark: "#059669",
+    backgroundDark: "#1C1C28",
+    surfaceDark: "#2A2A3A",
+    textPrimaryDark: "#F5F3EC",
+    textSecondaryDark: "#BCBCD0",
+    primaryDark: "#F38D88",
+    dangerDark: "#F87171",
+    warningDark: "#FDB32B",
+    borderDark: "#595972",
+    mapPathDark: "#F38D88",
+    illustrationSkinDark: "#FDB32B",
+    illustrationShirtDark: "#F5F3EC",
+    illustrationPantsDark: "#38384E",
+    illustrationAccentDark: "#F38D88",
 
     // Common colors
     black: "#000000",
@@ -200,32 +200,64 @@ const tokens = createTokens({
 // ─── Semantic Themes ──────────────────────────────────────────────────────────
 // These map to CSS-variable-style token references — accessed via `$background`
 // etc. in JSX props.
-const lightTheme = {
-  background: tokens.color.backgroundLight,
-  backgroundStrong: tokens.color.surfaceLight,
-  color: tokens.color.textPrimaryLight,
-  colorSecondary: tokens.color.textSecondaryLight,
-  primary: tokens.color.primaryLight,
-  danger: tokens.color.dangerLight,
-  warning: tokens.color.warningLight,
-  borderColor: tokens.color.borderLight,
-  mapPath: tokens.color.mapPathLight,
-  shadowColor: tokens.color.black,
-  placeholderColor: tokens.color.textSecondaryLight,
+const ostrichLightTheme = {
+  background: "#F5F3EC",
+  backgroundStrong: "#FFFFFF",
+  color: "#38384E",
+  colorSecondary: "#64647C",
+  primary: "#F38D88",
+  success: "#3FAF78",
+  danger: "#EF4444",
+  warning: "#FDB32B",
+  borderColor: "#E2DFD8",
+  mapPath: "#F38D88",
+  shadowColor: "#000000",
+  placeholderColor: "#64647C",
 };
 
-const darkTheme: typeof lightTheme = {
-  background: tokens.color.backgroundDark,
-  backgroundStrong: tokens.color.surfaceDark,
-  color: tokens.color.textPrimaryDark,
-  colorSecondary: tokens.color.textSecondaryDark,
-  primary: tokens.color.primaryDark,
-  danger: tokens.color.dangerDark,
-  warning: tokens.color.warningDark,
-  borderColor: tokens.color.borderDark,
-  mapPath: tokens.color.mapPathDark,
-  shadowColor: tokens.color.black,
-  placeholderColor: tokens.color.textSecondaryDark,
+const ostrichDarkTheme: typeof ostrichLightTheme = {
+  background: "#1C1C28",
+  backgroundStrong: "#2A2A3A",
+  color: "#F5F3EC",
+  colorSecondary: "#BCBCD0",
+  primary: "#F38D88",
+  success: "#57C98D",
+  danger: "#F87171",
+  warning: "#FDB32B",
+  borderColor: "#595972",
+  mapPath: "#F38D88",
+  shadowColor: "#000000",
+  placeholderColor: "#BCBCD0",
+};
+
+const classicLightTheme: typeof ostrichLightTheme = {
+  background: "#F8FAFC",
+  backgroundStrong: "#FFFFFF",
+  color: "#0F172A",
+  colorSecondary: "#64748B",
+  primary: "#10B981",
+  success: "#10B981",
+  danger: "#EF4444",
+  warning: "#F59E0B",
+  borderColor: "#E2E8F0",
+  mapPath: "#3B82F6",
+  shadowColor: "#000000",
+  placeholderColor: "#64748B",
+};
+
+const classicDarkTheme: typeof ostrichLightTheme = {
+  background: "#0B1120",
+  backgroundStrong: "#1E293B",
+  color: "#F8FAFC",
+  colorSecondary: "#94A3B8",
+  primary: "#059669",
+  success: "#34D399",
+  danger: "#DC2626",
+  warning: "#D97706",
+  borderColor: "#334155",
+  mapPath: "#06B6D4",
+  shadowColor: "#000000",
+  placeholderColor: "#94A3B8",
 };
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -236,8 +268,14 @@ export const tamaguiConfig = createTamagui({
   themeClassNameOnRoot: false, // Not a web app
   tokens,
   themes: {
-    light: lightTheme,
-    dark: darkTheme,
+    // Backward-compatible defaults
+    light: ostrichLightTheme,
+    dark: ostrichDarkTheme,
+    // Variant-specific themes selected at runtime in app/_layout.tsx
+    ostrich_light: ostrichLightTheme,
+    ostrich_dark: ostrichDarkTheme,
+    classic_light: classicLightTheme,
+    classic_dark: classicDarkTheme,
   },
   fonts: {
     heading: activeFont,

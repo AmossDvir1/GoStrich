@@ -1,4 +1,4 @@
-﻿import { GLOBAL_NAV_CLEARANCE } from "@/components/global-top-nav";
+import { GLOBAL_NAV_CLEARANCE } from "@/components/global-top-nav";
 import { SwipeableSessionRow } from "@/components/swipeable-session-row";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { ScreenWrapper } from "@/components/ui/screen-wrapper";

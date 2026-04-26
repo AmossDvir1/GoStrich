@@ -72,8 +72,8 @@ export function AnimatedTabBar({
 
   const activePillColors: [string, string] =
     scheme === "dark"
-      ? ["rgba(16, 185, 129, 0.28)", "rgba(5, 150, 105, 0.22)"]
-      : ["rgba(16, 185, 129, 0.22)", "rgba(16, 185, 129, 0.14)"];
+      ? ["rgba(243, 141, 136, 0.30)", "rgba(229, 117, 112, 0.24)"]
+      : ["rgba(243, 141, 136, 0.24)", "rgba(243, 141, 136, 0.16)"];
 
   const glassBorder =
     scheme === "dark"
@@ -99,7 +99,7 @@ export function AnimatedTabBar({
         <View
           style={{
             borderRadius: 40,
-            shadowColor: "#000",
+            shadowColor: c.textPrimary,
             shadowOpacity: scheme === "dark" ? 0.4 : 0.15,
             shadowRadius: 20,
             shadowOffset: { width: 0, height: 8 },
@@ -128,7 +128,7 @@ export function AnimatedTabBar({
                 {
                   backgroundColor:
                     scheme === "dark"
-                      ? "rgba(15, 28, 50, 0.35)"
+                      ? "rgba(56, 56, 78, 0.35)"
                       : "rgba(255, 255, 255, 0.35)",
                 },
               ]}

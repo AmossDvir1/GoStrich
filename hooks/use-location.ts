@@ -1,4 +1,4 @@
-﻿import * as Location from "expo-location";
+import * as Location from "expo-location";
 import { useCallback, useEffect, useState } from "react";
 import { AppState, type AppStateStatus } from "react-native";
 

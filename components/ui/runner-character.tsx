@@ -16,6 +16,7 @@ export function RunnerCharacter({
   isRunning = false,
   size,
 }: RunnerCharacterProps) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const [assets, error] = useAssets([require("../../assets/ostrich.riv")]);
   const riveRef = useRef<RiveRef>(null);
   // Keep a ref so the onPlay callback always has the latest value

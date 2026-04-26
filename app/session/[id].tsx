@@ -1,4 +1,4 @@
-﻿import { SessionSpeedChart } from "@/components/session-speed-chart";
+import { SessionSpeedChart } from "@/components/session-speed-chart";
 import { STORY_HEIGHT, STORY_WIDTH, StoryCard } from "@/components/story-card";
 import { BackButton } from "@/components/ui/back-button";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
@@ -9,10 +9,10 @@ import { useAppStore } from "@/stores/appStore";
 import { useProfileStore } from "@/stores/profileStore";
 import { useWorkoutStore } from "@/stores/workoutStore";
 import {
-    formatDistance,
-    formatDuration,
-    formatPace,
-    formatSpeed,
+  formatDistance,
+  formatDuration,
+  formatPace,
+  formatSpeed,
 } from "@/utils/formatting";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
@@ -24,7 +24,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Popover, SizableText, XStack, YStack } from "tamagui";
 
 const MAP_SHADOW = {
-  shadowColor: "#000",
   shadowOpacity: 0.08,
   shadowRadius: 12,
   shadowOffset: { width: 0, height: 4 },
@@ -32,7 +31,6 @@ const MAP_SHADOW = {
 } as const;
 
 const CARD_SHADOW = {
-  shadowColor: "#000",
   shadowOpacity: 0.06,
   shadowRadius: 12,
   shadowOffset: { width: 0, height: 4 },
@@ -40,7 +38,6 @@ const CARD_SHADOW = {
 } as const;
 
 const STAT_SHADOW = {
-  shadowColor: "#000",
   shadowOpacity: 0.05,
   shadowRadius: 8,
   shadowOffset: { width: 0, height: 2 },
@@ -48,7 +45,6 @@ const STAT_SHADOW = {
 } as const;
 
 const DONE_BTN_SHADOW = {
-  shadowColor: "#10B981",
   shadowOpacity: 0.3,
   shadowRadius: 12,
   shadowOffset: { width: 0, height: 6 },
@@ -162,7 +158,7 @@ export default function SessionSummaryScreen() {
         alignItems="center"
         justifyContent="space-between"
         backgroundColor={c.surface}
-        shadowColor="#000"
+        shadowColor={c.textPrimary}
         shadowOpacity={0.08}
         shadowRadius={8}
         shadowOffset={{ width: 0, height: 3 }}
@@ -219,7 +215,7 @@ export default function SessionSummaryScreen() {
             borderRadius="$4"
             overflow="hidden"
             marginBottom="$5"
-            style={MAP_SHADOW}
+            style={[MAP_SHADOW, { shadowColor: c.textPrimary }]}
           >
             <MapView
               provider={PROVIDER_DEFAULT}
@@ -263,7 +259,7 @@ export default function SessionSummaryScreen() {
           borderRadius="$4"
           marginBottom="$4"
           backgroundColor={c.surface}
-          style={CARD_SHADOW}
+          style={[CARD_SHADOW, { shadowColor: c.textPrimary }]}
         >
           <SizableText
             fontSize={56}
@@ -327,6 +323,7 @@ export default function SessionSummaryScreen() {
               display: isNewSession ? "flex" : "none",
             },
             DONE_BTN_SHADOW,
+            { shadowColor: c.primary },
           ]}
           android_ripple={{ color: "rgba(255,255,255,0.2)" }}
           accessibilityRole="button"
@@ -392,7 +389,7 @@ function StatCard({
       borderRadius="$4"
       alignItems="center"
       backgroundColor={c.surface}
-      style={STAT_SHADOW}
+      style={[STAT_SHADOW, { shadowColor: c.textPrimary }]}
     >
       <SizableText
         size="$5"
@@ -420,7 +417,7 @@ function StatCard({
                 height: 16,
                 borderRadius: 8,
                 borderWidth: 1.5,
-                borderColor: "#F59E0B",
+                borderColor: c.warning,
                 alignItems: "center",
                 justifyContent: "center",
               }}
@@ -428,7 +425,7 @@ function StatCard({
               <SizableText
                 size="$1"
                 fontWeight="800"
-                color="#F59E0B"
+                color={c.warning}
                 lineHeight={12}
               >
                 !
@@ -437,13 +434,13 @@ function StatCard({
           </Popover.Trigger>
           <Popover.Content
             borderWidth={1}
-            borderColor="#F59E0B"
+            borderColor={c.warning}
             backgroundColor={c.surface}
             padding="$3"
             borderRadius="$3"
             maxWidth={200}
           >
-            <SizableText size="$2" color="#F59E0B" textAlign="center">
+            <SizableText size="$2" color={c.warning} textAlign="center">
               {warning}
             </SizableText>
           </Popover.Content>

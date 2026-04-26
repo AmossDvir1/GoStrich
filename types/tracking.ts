@@ -11,6 +11,8 @@ export interface ActiveRun {
   gpsPoints: GpsPoint[];
   startTime: number;
   pauses: Pause[];
+  speedSeries: { t: number; speedMps: number | null }[];
+  locationName: string | null;
 }
 
 export interface TrackingMetrics {

@@ -58,7 +58,7 @@ export function PhotoPickerModal({
             <SizableText
               size="$4"
               fontWeight="600"
-              color={option.style === "destructive" ? "#EF4444" : c.textPrimary}
+              color={option.style === "destructive" ? c.danger : c.textPrimary}
             >
               {option.text}
             </SizableText>

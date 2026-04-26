@@ -78,7 +78,7 @@ export function SwipeableSessionRow({
       style={{
         borderRadius: 20,
         overflow: "hidden",
-        shadowColor: "#000",
+        shadowColor: c.textPrimary,
         shadowOpacity: 0.06,
         shadowRadius: 8,
         shadowOffset: { width: 0, height: 2 },
@@ -92,7 +92,7 @@ export function SwipeableSessionRow({
           top: 0,
           bottom: 0,
           width: REVEAL_WIDTH,
-          backgroundColor: "#EF4444",
+          backgroundColor: c.danger,
           alignItems: "center",
           justifyContent: "center",
         }}

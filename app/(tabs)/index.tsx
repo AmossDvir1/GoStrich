@@ -1,4 +1,4 @@
-﻿import { RunCountdown } from "@/components/run-countdown";
+import { RunCountdown } from "@/components/run-countdown";
 import { RunDrawer } from "@/components/run-drawer";
 import { Colors, MapStyles } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -28,7 +28,6 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const PILL_SHADOW = {
-  shadowColor: "#000",
   shadowOpacity: 0.08,
   shadowRadius: 6,
   shadowOffset: { width: 0, height: 3 },
@@ -36,7 +35,6 @@ const PILL_SHADOW = {
 } as const;
 
 const DRAWER_SHADOW = {
-  shadowColor: "#000",
   shadowOpacity: 0.12,
   shadowRadius: 16,
   shadowOffset: { width: 0, height: -4 },
@@ -219,7 +217,7 @@ export default function HomeScreen() {
             flex={1}
             alignItems="center"
             justifyContent="center"
-            backgroundColor={scheme === "dark" ? "#111827" : "#E5E7EB"}
+            backgroundColor={c.background}
           >
             <SizableText size="$8">{"📍"}</SizableText>
             <SizableText
@@ -281,6 +279,7 @@ export default function HomeScreen() {
               justifyContent: "center",
               opacity: pressed ? 0.75 : 1,
               ...PILL_SHADOW,
+              shadowColor: c.textPrimary,
             })}
             accessibilityRole="button"
             accessibilityLabel="Center map on my location"
@@ -352,6 +351,7 @@ export default function HomeScreen() {
               overflow: "hidden",
             },
             DRAWER_SHADOW,
+            { shadowColor: c.textPrimary },
             drawerAnimStyle,
           ]}
         >
