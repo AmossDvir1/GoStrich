@@ -81,7 +81,10 @@ export function RunCountdown({ visible, onFinish }: RunCountdownProps) {
               style={{
                 fontSize: remainingTime === 0 ? 52 : 72,
                 fontWeight: "900",
-                color: remainingTime === 0 ? c.primary : c.textPrimary,
+                color:
+                  remainingTime === 0
+                    ? c.primary
+                    : "rgba(255,255,255,0.96)",
                 letterSpacing: remainingTime === 0 ? 2 : 0,
               }}
             >
@@ -100,15 +103,15 @@ export function RunCountdown({ visible, onFinish }: RunCountdownProps) {
             paddingVertical: 10,
             borderRadius: 999,
             borderWidth: 1,
-            borderColor: "rgba(255,255,255,0.25)",
+            borderColor: "rgba(255,255,255,0.55)",
             backgroundColor: pressed
-              ? "rgba(255,255,255,0.12)"
-              : "rgba(255,255,255,0.06)",
+              ? "rgba(255,255,255,0.2)"
+              : "rgba(255,255,255,0.12)",
           })}
         >
           <Text
             style={{
-              color: c.textPrimary,
+              color: "rgba(255,255,255,0.96)",
               fontSize: 15,
               fontWeight: "700",
               letterSpacing: 0.4,
