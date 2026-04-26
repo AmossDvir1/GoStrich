@@ -27,7 +27,7 @@ This document outlines a phased implementation of GPS improvements for GoStrich,
 | **Live State**      | Pace smoothing (EMA)              | ✅ EMA (α=0.25)      | ✅ Optimize (α=0.15)           | P1       |
 |                     | Pace display rounding             | ❌ No                | ✅ Round to 30s                | P1       |
 | **Post-Processing** | Path smoothing (Douglas-Peucker)  | ❌ No                | ✅ Implement                   | P2       |
-| | Map matching (HMM/snapping)       | ❌ No                | ✅ Mapbox/OSM                  | P3       |
+|                     | Map matching (HMM/snapping)       | ❌ No                | ✅ Mapbox/OSM                  | P3       |
 |                     | Elevation correction (DEM)        | ❌ No                | ✅ SRTM query + 3m threshold   | P3       |
 | **Distance Math**   | Haversine (current)               | ✅ Yes               | ✅ Swap to Vincenty for >5km   | P2       |
 | **UI/UX**           | GPS lock indicator                | ⚠️ Passive dot       | ✅ Pre-start warning dialog    | P2       |

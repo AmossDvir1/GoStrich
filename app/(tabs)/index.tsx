@@ -77,7 +77,9 @@ export default function HomeScreen() {
   const [showCountdown, setShowCountdown] = useState(false);
   // Phase 2.2: GPS warning state
   const [showGpsWarning, setShowGpsWarning] = useState(false);
-  const [gpsDegradedAccuracy, setGpsDegradedAccuracy] = useState<number | null>(null);
+  const [gpsDegradedAccuracy, setGpsDegradedAccuracy] = useState<number | null>(
+    null,
+  );
 
   const handleCountdownFinish = useCallback(() => {
     setShowCountdown(false);
@@ -88,7 +90,11 @@ export default function HomeScreen() {
   const validateGpsBeforeStart = useCallback(async () => {
     try {
       const location = await Location.getLastKnownPositionAsync();
-      if (location && location.coords.accuracy && location.coords.accuracy > 30) {
+      if (
+        location &&
+        location.coords.accuracy &&
+        location.coords.accuracy > 30
+      ) {
         setGpsDegradedAccuracy(location.coords.accuracy);
         setShowGpsWarning(true);
         return false;

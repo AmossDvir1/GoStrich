@@ -68,9 +68,7 @@ function perpendicularDistance(
   const x2 = lineEnd.latitude;
   const y2 = lineEnd.longitude;
 
-  const num = Math.abs(
-    (y2 - y1) * x - (x2 - x1) * y + x2 * y1 - y2 * x1,
-  );
+  const num = Math.abs((y2 - y1) * x - (x2 - x1) * y + x2 * y1 - y2 * x1);
   const den = Math.sqrt((y2 - y1) ** 2 + (x2 - x1) ** 2);
   return den === 0 ? 0 : num / den;
 }
@@ -93,8 +91,12 @@ export function vincenty(
   const FLATTENING = 1 / 298.257223563;
 
   const L = ((b.longitude - a.longitude) * Math.PI) / 180;
-  const U1 = Math.atan((1 - FLATTENING) * Math.tan((a.latitude * Math.PI) / 180));
-  const U2 = Math.atan((1 - FLATTENING) * Math.tan((b.latitude * Math.PI) / 180));
+  const U1 = Math.atan(
+    (1 - FLATTENING) * Math.tan((a.latitude * Math.PI) / 180),
+  );
+  const U2 = Math.atan(
+    (1 - FLATTENING) * Math.tan((b.latitude * Math.PI) / 180),
+  );
   const sinU1 = Math.sin(U1);
   const cosU1 = Math.cos(U1);
   const sinU2 = Math.sin(U2);
@@ -138,41 +140,28 @@ export function vincenty(
         (sigma +
           C *
             sinSigma *
-            (cos2SigmaM +
-              C *
-                cosSigma *
-                (-1 + 2 * cos2SigmaM ** 2)));
-  } while (
-    Math.abs(lambda - lambdaP) > 1e-12 &&
-    --iterLimit > 0
-  );
+            (cos2SigmaM + C * cosSigma * (-1 + 2 * cos2SigmaM ** 2)));
+  } while (Math.abs(lambda - lambdaP) > 1e-12 && --iterLimit > 0);
 
   if (iterLimit === 0) return 0; // Formula failed to converge
 
   const uSq =
     (cosSqAlpha * (EQUATORIAL_RADIUS ** 2 - POLAR_RADIUS ** 2)) /
-    (POLAR_RADIUS ** 2);
-  const A =
-    1 +
-    (uSq / 16384) *
-      (4096 + uSq * (-768 + uSq * (320 - 175 * uSq)));
-  const B =
-    (uSq / 1024) *
-    (256 + uSq * (-128 + uSq * (74 - 47 * uSq)));
+    POLAR_RADIUS ** 2;
+  const A = 1 + (uSq / 16384) * (4096 + uSq * (-768 + uSq * (320 - 175 * uSq)));
+  const B = (uSq / 1024) * (256 + uSq * (-128 + uSq * (74 - 47 * uSq)));
   const deltaSigma =
     B *
     sinSigma *
     (cos2SigmaM +
       (B / 4) *
-        (cosSigma *
-          (-1 + 2 * cos2SigmaM ** 2) -
+        (cosSigma * (-1 + 2 * cos2SigmaM ** 2) -
           (B / 6) *
             cos2SigmaM *
             (-3 + 4 * sinSigma ** 2) *
             (-3 + 4 * cos2SigmaM ** 2)));
 
-  const s =
-    POLAR_RADIUS * A * (sigma - deltaSigma);
+  const s = POLAR_RADIUS * A * (sigma - deltaSigma);
   return s / 1000; // Convert to kilometers
 }
 

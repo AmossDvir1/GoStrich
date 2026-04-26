@@ -14,7 +14,7 @@ import {
   formatPace,
   formatSpeed,
 } from "@/utils/formatting";
-import { generatePaceGradient, douglasPeucker } from "@/utils/gps-utils";
+import { douglasPeucker, generatePaceGradient } from "@/utils/gps-utils";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useMemo, useRef, useState } from "react";
@@ -252,7 +252,9 @@ export default function SessionSummaryScreen() {
                 // Phase 2.1: Use simplified coordinates for better performance
                 coordinates={simplifiedCoords}
                 // Phase 2.4: Use pace gradient colors if available
-                strokeColors={segmentColors.length > 0 ? segmentColors : [c.primary]}
+                strokeColors={
+                  segmentColors.length > 0 ? segmentColors : [c.primary]
+                }
                 strokeWidth={4}
               />
             </MapView>
