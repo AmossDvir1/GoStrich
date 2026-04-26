@@ -1,4 +1,4 @@
-﻿import { SessionSpeedChart } from "@/components/session-speed-chart";
+import { SessionSpeedChart } from "@/components/session-speed-chart";
 import { STORY_HEIGHT, STORY_WIDTH, StoryCard } from "@/components/story-card";
 import { BackButton } from "@/components/ui/back-button";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
@@ -84,6 +84,22 @@ export default function SessionSummaryScreen() {
   const [isSharing, setIsSharing] = useState(false);
   const storyCardRef = useRef<View>(null);
 
+  // Phase 2.1 & 2.4: Memoize polyline simplification and pace gradient (must be before early return)
+  const { simplifiedCoords, region, segmentColors } = useMemo(() => {
+    const coords = workout?.routeCoords ?? [];
+    const simplified =
+      coords.length > 10 ? douglasPeucker(coords, 0.00015) : coords;
+    const mapRegion = routeRegion(simplified);
+    const colors = workout?.speedSeries
+      ? generatePaceGradient(workout.speedSeries)
+      : [];
+    return {
+      simplifiedCoords: simplified,
+      region: mapRegion,
+      segmentColors: colors,
+    };
+  }, [workout?.routeCoords, workout?.speedSeries]);
+
   if (!workout) {
     return (
       <YStack flex={1} backgroundColor={c.background}>
@@ -123,18 +139,6 @@ export default function SessionSummaryScreen() {
     hour: "2-digit",
     minute: "2-digit",
   });
-
-  const coords = workout.routeCoords ?? [];
-  // Phase 2.1: Simplify polyline with Douglas-Peucker algorithm (40-60% point reduction)
-  const simplifiedCoords = useMemo(
-    () => (coords.length > 10 ? douglasPeucker(coords, 0.00015) : coords),
-    [coords],
-  );
-  const region = routeRegion(simplifiedCoords);
-  // Phase 2.4: Generate pace-based colors for polyline gradient
-  const segmentColors = workout.speedSeries
-    ? generatePaceGradient(workout.speedSeries)
-    : [];
 
   const handleDiscard = () => setDiscardVisible(true);
 
@@ -219,7 +223,7 @@ export default function SessionSummaryScreen() {
           {dateStr} · {timeStr}
         </SizableText>
 
-        {region != null && coords.length > 1 && (
+        {region != null && simplifiedCoords.length > 1 && (
           <YStack
             height={200}
             borderRadius="$4"
