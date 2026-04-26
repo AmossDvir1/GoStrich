@@ -1,4 +1,4 @@
-import { SessionSpeedChart } from "@/components/session-speed-chart";
+﻿import { SessionSpeedChart } from "@/components/session-speed-chart";
 import { STORY_HEIGHT, STORY_WIDTH, StoryCard } from "@/components/story-card";
 import { BackButton } from "@/components/ui/back-button";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
@@ -14,9 +14,10 @@ import {
   formatPace,
   formatSpeed,
 } from "@/utils/formatting";
+import { generatePaceGradient, douglasPeucker } from "@/utils/gps-utils";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import type { View } from "react-native";
 import { ActivityIndicator, Pressable, ScrollView } from "react-native";
 import MapView, { Polyline, PROVIDER_DEFAULT } from "react-native-maps";
@@ -124,7 +125,16 @@ export default function SessionSummaryScreen() {
   });
 
   const coords = workout.routeCoords ?? [];
-  const region = routeRegion(coords);
+  // Phase 2.1: Simplify polyline with Douglas-Peucker algorithm (40-60% point reduction)
+  const simplifiedCoords = useMemo(
+    () => (coords.length > 10 ? douglasPeucker(coords, 0.00015) : coords),
+    [coords],
+  );
+  const region = routeRegion(simplifiedCoords);
+  // Phase 2.4: Generate pace-based colors for polyline gradient
+  const segmentColors = workout.speedSeries
+    ? generatePaceGradient(workout.speedSeries)
+    : [];
 
   const handleDiscard = () => setDiscardVisible(true);
 
@@ -239,8 +249,10 @@ export default function SessionSummaryScreen() {
               }
             >
               <Polyline
-                coordinates={coords}
-                strokeColor={c.primary}
+                // Phase 2.1: Use simplified coordinates for better performance
+                coordinates={simplifiedCoords}
+                // Phase 2.4: Use pace gradient colors if available
+                strokeColors={segmentColors.length > 0 ? segmentColors : [c.primary]}
                 strokeWidth={4}
               />
             </MapView>

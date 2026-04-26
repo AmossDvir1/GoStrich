@@ -1,5 +1,6 @@
 import { RunCountdown } from "@/components/run-countdown";
 import { RunDrawer } from "@/components/run-drawer";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { Colors, MapStyles } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useLocation } from "@/hooks/use-location";
@@ -9,6 +10,7 @@ import { formatPace, formatSpeed } from "@/utils/formatting";
 import { SizableText, YStack } from "tamagui";
 
 import { LinearGradient } from "expo-linear-gradient";
+import * as Location from "expo-location";
 import React, { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -73,19 +75,44 @@ export default function HomeScreen() {
   const isRunning = runState === "running";
 
   const [showCountdown, setShowCountdown] = useState(false);
+  // Phase 2.2: GPS warning state
+  const [showGpsWarning, setShowGpsWarning] = useState(false);
+  const [gpsDegradedAccuracy, setGpsDegradedAccuracy] = useState<number | null>(null);
 
   const handleCountdownFinish = useCallback(() => {
     setShowCountdown(false);
     void handleStart();
   }, [handleStart]);
 
-  const handleStartPress = useCallback(() => {
+  // Phase 2.2: Validate GPS accuracy before starting run
+  const validateGpsBeforeStart = useCallback(async () => {
+    try {
+      const location = await Location.getLastKnownPositionAsync();
+      if (location && location.coords.accuracy && location.coords.accuracy > 30) {
+        setGpsDegradedAccuracy(location.coords.accuracy);
+        setShowGpsWarning(true);
+        return false;
+      }
+      return true;
+    } catch {
+      // If we can't get location, allow start
+      return true;
+    }
+  }, []);
+
+  const handleStartPress = useCallback(async () => {
+    // Phase 2.2: Check GPS accuracy before proceeding
+    const hasGoodGps = await validateGpsBeforeStart();
+    if (!hasGoodGps) {
+      return; // GPS warning will be shown
+    }
+
     if (countdownEnabled) {
       setShowCountdown(true);
       return;
     }
     void handleStart();
-  }, [countdownEnabled, handleStart]);
+  }, [countdownEnabled, handleStart, validateGpsBeforeStart]);
 
   const handleToggleCountdown = useCallback(() => {
     setCountdownEnabled(!countdownEnabled);
@@ -394,6 +421,24 @@ export default function HomeScreen() {
           <RunCountdown
             visible={showCountdown}
             onFinish={handleCountdownFinish}
+          />
+
+          {/* Phase 2.2: GPS warning dialog */}
+          <ConfirmModal
+            visible={showGpsWarning}
+            title="GPS Accuracy Degraded"
+            message={`Current accuracy: ${Math.round(gpsDegradedAccuracy || 0)}m. Try moving to open sky for better signal. Start anyway?`}
+            confirmLabel="Start"
+            onCancel={() => {
+              setShowGpsWarning(false);
+              setGpsDegradedAccuracy(null);
+            }}
+            onConfirm={() => {
+              setShowGpsWarning(false);
+              setGpsDegradedAccuracy(null);
+              void handleStart();
+            }}
+            colors={c}
           />
 
           {/* Stats row — always rendered, hidden when collapsed via opacity */}

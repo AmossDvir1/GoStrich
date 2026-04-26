@@ -1,9 +1,9 @@
 ---
 title: GPS Enhancement & Filtering Plan
 description: Comprehensive roadmap to implement GPS accuracy, sensor fusion, and UX improvements based on professional running app standards (Strava, Nike Run Club)
-status: Phase 1 Complete ✅
+status: Phase 2 Complete ✅
 created: 2026-04-26
-updated: 2026-04-26 (Phase 1 finished)
+updated: 2026-04-26 (Phase 2 finished)
 ---
 
 # GPS Enhancement & Filtering Plan
@@ -18,20 +18,20 @@ This document outlines a phased implementation of GPS improvements for GoStrich,
 
 ## Spec Compliance Audit
 
-| Category | Feature | Current | Target | Priority |
-|----------|---------|---------|--------|----------|
-| **Data Ingestion** | Accuracy thresholding (tiered) | ❌ Single binary 30m | ✅ Tiered: 50m/20-50m/20m | P1 |
-| | Outlier rejection + interpolation | ⚠️ Discard only | ✅ Interpolate from trajectory | P1 |
-| **Sensor Fusion** | Kalman filter (GPS + IMU) | ❌ No | ✅ Implement | P3 |
-| | Dead reckoning (signal loss) | ❌ No | ✅ Pedometer fallback | P3 |
-| **Live State** | Pace smoothing (EMA) | ✅ EMA (α=0.25) | ✅ Optimize (α=0.15) | P1 |
-| | Pace display rounding | ❌ No | ✅ Round to 30s | P1 |
-| **Post-Processing** | Path smoothing (Douglas-Peucker) | ❌ No | ✅ Implement | P2 |
-| | Map matching (HMM/snapping) | ❌ No | ✅ Mapbox/OSM | P3 |
-| | Elevation correction (DEM) | ❌ No | ✅ SRTM query + 3m threshold | P3 |
-| **Distance Math** | Haversine (current) | ✅ Yes | ✅ Swap to Vincenty for >5km | P2 |
-| **UI/UX** | GPS lock indicator | ⚠️ Passive dot | ✅ Pre-start warning dialog | P2 |
-| | Polyline gradient (pace zones) | ❌ Monochrome | ✅ Blue→Red by pace | P2 |
+| Category            | Feature                           | Current              | Target                         | Priority |
+| ------------------- | --------------------------------- | -------------------- | ------------------------------ | -------- |
+| **Data Ingestion**  | Accuracy thresholding (tiered)    | ❌ Single binary 30m | ✅ Tiered: 50m/20-50m/20m      | P1       |
+|                     | Outlier rejection + interpolation | ⚠️ Discard only      | ✅ Interpolate from trajectory | P1       |
+| **Sensor Fusion**   | Kalman filter (GPS + IMU)         | ❌ No                | ✅ Implement                   | P3       |
+|                     | Dead reckoning (signal loss)      | ❌ No                | ✅ Pedometer fallback          | P3       |
+| **Live State**      | Pace smoothing (EMA)              | ✅ EMA (α=0.25)      | ✅ Optimize (α=0.15)           | P1       |
+|                     | Pace display rounding             | ❌ No                | ✅ Round to 30s                | P1       |
+| **Post-Processing** | Path smoothing (Douglas-Peucker)  | ❌ No                | ✅ Implement                   | P2       |
+| | Map matching (HMM/snapping)       | ❌ No                | ✅ Mapbox/OSM                  | P3       |
+|                     | Elevation correction (DEM)        | ❌ No                | ✅ SRTM query + 3m threshold   | P3       |
+| **Distance Math**   | Haversine (current)               | ✅ Yes               | ✅ Swap to Vincenty for >5km   | P2       |
+| **UI/UX**           | GPS lock indicator                | ⚠️ Passive dot       | ✅ Pre-start warning dialog    | P2       |
+|                     | Polyline gradient (pace zones)    | ❌ Monochrome        | ✅ Blue→Red by pace            | P2       |
 
 ---
 
@@ -42,14 +42,15 @@ This document outlines a phased implementation of GPS improvements for GoStrich,
 These are high-impact, low-effort improvements that ship immediately.
 
 #### 1.1 Tiered Accuracy Thresholding
+
 **File:** `stores/trackingStore.ts`  
 **Change:** Replace binary 30m threshold with three-tier filtering.
 
 ```typescript
 const ACCURACY_THRESHOLDS = {
-  DISCARD_M: 50,        // Discard points > 50m
-  WEIGHT_LOW_MIN: 20,   // Weight < 20m → full trust
-  WEIGHT_LOW_MAX: 50,   // Weight 20-50m → 50% trust
+  DISCARD_M: 50, // Discard points > 50m
+  WEIGHT_LOW_MIN: 20, // Weight < 20m → full trust
+  WEIGHT_LOW_MAX: 50, // Weight 20-50m → 50% trust
 };
 
 function filterByAccuracy(point: GpsPoint, prevSpeed: number): boolean {
@@ -64,6 +65,7 @@ function filterByAccuracy(point: GpsPoint, prevSpeed: number): boolean {
 ```
 
 **Acceptance Criteria:**
+
 - [x] Points with accuracy > 50m are rejected
 - [x] Points with accuracy 20-50m have ~70% acceptance (stochastic filtering)
 - [x] Points with accuracy < 20m always accepted
@@ -73,6 +75,7 @@ function filterByAccuracy(point: GpsPoint, prevSpeed: number): boolean {
 ---
 
 #### 1.2 Optimize EMA Smoothing Factor
+
 **File:** `stores/trackingStore.ts`  
 **Change:** Update `SPEED_SMOOTHING_FACTOR` from 0.25 to 0.15.
 
@@ -80,12 +83,14 @@ function filterByAccuracy(point: GpsPoint, prevSpeed: number): boolean {
 const SPEED_SMOOTHING_FACTOR = 0.15; // ~6-7 second smoothing window
 ```
 
-**Rationale:** 
+**Rationale:**
+
 - Current α=0.25 gives ~4 second window → feels laggy.
 - New α=0.15 gives ~6-7 second window → better responsiveness without jitter.
 - Formula: window ≈ 1 / α seconds.
 
 **Acceptance Criteria:**
+
 - [x] Live pace display is smoother without feeling delayed
 - [x] No jumps when GPS signal recovers
 - [x] EMA factor optimized (0.15 = ~6-7s window vs. prior 0.25 = ~4s)
@@ -93,6 +98,7 @@ const SPEED_SMOOTHING_FACTOR = 0.15; // ~6-7 second smoothing window
 ---
 
 #### 1.3 Pace Display Rounding
+
 **File:** `utils/formatting.ts`  
 **Change:** Add rounding to nearest 30 seconds for pace display (cognitive ease).
 
@@ -103,23 +109,24 @@ const SPEED_SMOOTHING_FACTOR = 0.15; // ~6-7 second smoothing window
  * @param roundTo Round to nearest N seconds (e.g., 30 = "5:30/km", "6:00/km")
  */
 export function formatPace(secondsPerKm: number, roundTo: number = 0): string {
-  const rounded = roundTo > 0
-    ? Math.round(secondsPerKm / roundTo) * roundTo
-    : secondsPerKm;
-  
+  const rounded =
+    roundTo > 0 ? Math.round(secondsPerKm / roundTo) * roundTo : secondsPerKm;
+
   const minutes = Math.floor(rounded / 60);
   const seconds = Math.round(rounded % 60);
   return `${minutes}:${seconds.toString().padStart(2, "0")}/km`;
 }
 ```
 
-**Usage:** 
+**Usage:**
+
 ```typescript
 // In active run display:
 <Text>{formatPace(metrics.currentPace, 30)}</Text>  // "5:30/km"
 ```
 
 **Acceptance Criteria:**
+
 - [x] Live pace rounds to nearest 30 seconds
 - [x] Format is displayed consistently (live display + formatPace utility)
 - [x] No performance regression
@@ -127,6 +134,7 @@ export function formatPace(secondsPerKm: number, roundTo: number = 0): string {
 ---
 
 #### 1.4 Trajectory Interpolation for GPS Jumps
+
 **File:** `stores/trackingStore.ts`  
 **Change:** When speed threshold is exceeded, interpolate position from last 3 valid points instead of discarding.
 
@@ -136,7 +144,8 @@ function interpolateFromTrajectory(
   implausiblePoint: GpsPoint,
 ): GpsPoint {
   // Use weighted average of last 3 points + expected vector
-  if (lastThreePoints.length < 2) return lastThreePoints[lastThreePoints.length - 1];
+  if (lastThreePoints.length < 2)
+    return lastThreePoints[lastThreePoints.length - 1];
 
   const p1 = lastThreePoints[lastThreePoints.length - 2];
   const p2 = lastThreePoints[lastThreePoints.length - 1];
@@ -154,6 +163,7 @@ function interpolateFromTrajectory(
 ```
 
 **Acceptance Criteria:**
+
 - [x] GPS jumps are interpolated smoothly
 - [x] Interpolation replaces discard logic (polyline smooth instead of spiky)
 - [x] Distance calculation integrates interpolated points correctly
@@ -163,6 +173,7 @@ function interpolateFromTrajectory(
 ### **Phase 2: Medium Wins (Tier 2) — Est. 5-7 days**
 
 #### 2.1 Douglas-Peucker Path Simplification
+
 **File:** `services/gps/index.ts` (new file) or `utils/gps-utils.ts`  
 **Change:** Post-run polyline reduction to remove 40-60% of redundant points.
 
@@ -184,7 +195,11 @@ export function douglasPeucker(
 
   // Find point with maximum distance from line
   for (let i = 1; i < points.length - 1; i++) {
-    const dist = perpendicularDistance(points[i], points[0], points[points.length - 1]);
+    const dist = perpendicularDistance(
+      points[i],
+      points[0],
+      points[points.length - 1],
+    );
     if (dist > maxDist) {
       maxDist = dist;
       maxIdx = i;
@@ -206,9 +221,12 @@ function perpendicularDistance(
   lineStart: { latitude: number; longitude: number },
   lineEnd: { latitude: number; longitude: number },
 ): number {
-  const x = point.latitude, y = point.longitude;
-  const x1 = lineStart.latitude, y1 = lineStart.longitude;
-  const x2 = lineEnd.latitude, y2 = lineEnd.longitude;
+  const x = point.latitude,
+    y = point.longitude;
+  const x1 = lineStart.latitude,
+    y1 = lineStart.longitude;
+  const x2 = lineEnd.latitude,
+    y2 = lineEnd.longitude;
 
   const num = Math.abs((y2 - y1) * x - (x2 - x1) * y + x2 * y1 - y2 * x1);
   const den = Math.sqrt((y2 - y1) ** 2 + (x2 - x1) ** 2);
@@ -217,6 +235,7 @@ function perpendicularDistance(
 ```
 
 **Integration:**
+
 ```typescript
 // In trackingStore.ts, endRun():
 const simplifiedCoords = douglasPeucker(routeCoords, 0.00015);
@@ -224,6 +243,7 @@ const simplifiedCoords = douglasPeucker(routeCoords, 0.00015);
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Polyline point count reduced by 40-60%
 - [ ] Visual shape preserved on map
 - [ ] Epsilon tuning tested on urban + trail routes
@@ -232,6 +252,7 @@ const simplifiedCoords = douglasPeucker(routeCoords, 0.00015);
 ---
 
 #### 2.2 GPS Lock Pre-Start Warning Dialog
+
 **File:** `app/(tabs)/index.tsx`  
 **Change:** Check GPS accuracy before start, show warning if degraded.
 
@@ -277,6 +298,7 @@ const handleStartPress = useCallback(async () => {
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Dialog shows before run starts if GPS accuracy > 30m
 - [ ] User can override and start anyway
 - [ ] Accuracy value displayed dynamically
@@ -285,6 +307,7 @@ const handleStartPress = useCallback(async () => {
 ---
 
 #### 2.3 Vincenty's Formula for Long Runs
+
 **File:** `stores/trackingStore.ts`  
 **Change:** Swap to Vincenty for distance > 5km (reduces 0.5% error over marathons).
 
@@ -301,16 +324,24 @@ function vincenty(
   const L = ((b.longitude - a.longitude) * Math.PI) / 180;
   const U1 = Math.atan((1 - 0.00335) * Math.tan((a.latitude * Math.PI) / 180));
   const U2 = Math.atan((1 - 0.00335) * Math.tan((b.latitude * Math.PI) / 180));
-  const sinU1 = Math.sin(U1), cosU1 = Math.cos(U1);
-  const sinU2 = Math.sin(U2), cosU2 = Math.cos(U2);
+  const sinU1 = Math.sin(U1),
+    cosU1 = Math.cos(U1);
+  const sinU2 = Math.sin(U2),
+    cosU2 = Math.cos(U2);
 
-  let lambda = L, lambdaP, iterLimit = 100, cosSqAlpha, sinSigma, cos2SigmaM;
+  let lambda = L,
+    lambdaP,
+    iterLimit = 100,
+    cosSqAlpha,
+    sinSigma,
+    cos2SigmaM;
 
   do {
-    const sinLambda = Math.sin(lambda), cosLambda = Math.cos(lambda);
+    const sinLambda = Math.sin(lambda),
+      cosLambda = Math.cos(lambda);
     sinSigma = Math.sqrt(
       (cosU2 * sinLambda) ** 2 +
-      (cosU1 * sinU2 - sinU1 * cosU2 * cosLambda) ** 2,
+        (cosU1 * sinU2 - sinU1 * cosU2 * cosLambda) ** 2,
     );
     if (sinSigma === 0) return 0;
 
@@ -326,26 +357,35 @@ function vincenty(
     lambda =
       L +
       (1 - C) *
-      0.003 *
-      sinAlpha *
-      (sigma + C * sinSigma * (cos2SigmaM + C * cosSigma * (-1 + 2 * cos2SigmaM ** 2)));
+        0.003 *
+        sinAlpha *
+        (sigma +
+          C *
+            sinSigma *
+            (cos2SigmaM + C * cosSigma * (-1 + 2 * cos2SigmaM ** 2)));
   } while (Math.abs(lambda - lambdaP) > 1e-12 && --iterLimit > 0);
 
   if (iterLimit === 0) return 0;
 
-  const uSq = cosSqAlpha * (6378137 ** 2 - 6356752 ** 2) / (6356752 ** 2);
+  const uSq = (cosSqAlpha * (6378137 ** 2 - 6356752 ** 2)) / 6356752 ** 2;
   const A = 1 + (uSq / 16384) * (4096 + uSq * (-768 + uSq * (320 - 175 * uSq)));
   const B = (uSq / 1024) * (256 + uSq * (-128 + uSq * (74 - 47 * uSq)));
   const deltaSigma =
-    B * sinSigma * (cos2SigmaM + (B / 4) * (cosSigma * (-1 + 2 * cos2SigmaM ** 2)));
+    B *
+    sinSigma *
+    (cos2SigmaM + (B / 4) * (cosSigma * (-1 + 2 * cos2SigmaM ** 2)));
   return (6356752 * A * (sinSigma - deltaSigma)) / 1000; // Convert to km
 }
 
 // In distance calculation:
-const dKm = distanceKm >= 5 ? vincenty(prev, filteredPoint) : haversine(prev, filteredPoint);
+const dKm =
+  distanceKm >= 5
+    ? vincenty(prev, filteredPoint)
+    : haversine(prev, filteredPoint);
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Vincenty used for segments beyond 5km cumulative
 - [ ] No performance regression (runs only when distance > 5km)
 - [ ] Accuracy improvement validated on long route tests
@@ -353,6 +393,7 @@ const dKm = distanceKm >= 5 ? vincenty(prev, filteredPoint) : haversine(prev, fi
 ---
 
 #### 2.4 Polyline Gradient by Pace Zones
+
 **File:** `app/session/[id].tsx`  
 **Change:** Render polyline with color gradient mapped to pace zones.
 
@@ -391,6 +432,7 @@ const segmentColors = generatePaceGradient(workout.gpsPoints, workout.speedSerie
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Polyline colors change by pace zone
 - [ ] Blue (slow) → Amber (moderate) → Red (fast) gradient visible
 - [ ] Color mapping tuned to user's typical pace ranges
@@ -403,18 +445,24 @@ const segmentColors = generatePaceGradient(workout.gpsPoints, workout.speedSerie
 These are high-impact but require significant engineering.
 
 #### 3.1 Kalman Filter (GPS + Accelerometer Fusion)
+
 **File:** `services/gps/kalman-filter.ts` (new)  
 **Change:** Implement simple Kalman filter to fuse GPS + IMU data.
 
 **Dependencies:**
+
 - `expo-sensors` for accelerometer data
 
 **Sketch:**
+
 ```typescript
 class KalmanFilter {
   private state = { x: 0, y: 0 }; // Position
   private velocity = { vx: 0, vy: 0 }; // Velocity
-  private covariance = [[1, 0], [0, 1]]; // Uncertainty matrix
+  private covariance = [
+    [1, 0],
+    [0, 1],
+  ]; // Uncertainty matrix
   private Q = 0.01; // Process noise (GPS drift)
   private R = 0.1; // Measurement noise (IMU error)
 
@@ -441,8 +489,8 @@ class KalmanFilter {
     this.state.y += K * (gpsY - this.state.y);
 
     // Reduce uncertainty
-    this.covariance[0][0] *= (1 - K);
-    this.covariance[1][1] *= (1 - K);
+    this.covariance[0][0] *= 1 - K;
+    this.covariance[1][1] *= 1 - K;
   }
 
   getPosition(): { x: number; y: number } {
@@ -454,6 +502,7 @@ class KalmanFilter {
 **Integration:** Use in trackingStore during GPS updates to blend predicted position.
 
 **Acceptance Criteria:**
+
 - [ ] Accelerometer data successfully fused
 - [ ] Path smoother in tunnels/urban canyons
 - [ ] No significant battery drain
@@ -462,10 +511,12 @@ class KalmanFilter {
 ---
 
 #### 3.2 Dead Reckoning (Signal Loss Handling)
+
 **File:** `services/gps/dead-reckoning.ts` (new)  
 **Change:** Detect GPS signal loss, use pedometer + cadence to project forward.
 
 **Logic:**
+
 ```typescript
 class DeadReckoningEngine {
   private lastGpsPoint: GpsPoint | null = null;
@@ -495,7 +546,9 @@ class DeadReckoningEngine {
 
     // Convert to lat/lon delta
     const dLat = (distanceM / 111111) * Math.cos(lastHeading);
-    const dLon = (distanceM / (111111 * Math.cos(this.lastGpsPoint!.latitude))) * Math.sin(lastHeading);
+    const dLon =
+      (distanceM / (111111 * Math.cos(this.lastGpsPoint!.latitude))) *
+      Math.sin(lastHeading);
 
     return {
       ...this.lastGpsPoint!,
@@ -509,6 +562,7 @@ class DeadReckoningEngine {
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Signal loss detected within 3 seconds
 - [ ] Cadence calculated from accelerometer
 - [ ] Projection remains reasonable for up to 10 seconds
@@ -517,16 +571,22 @@ class DeadReckoningEngine {
 ---
 
 #### 3.3 DEM Elevation Correction
+
 **File:** `services/elevation/dem.ts` (new)  
 **Change:** Query SRTM or Mapbox Elevation API, correct altitude + apply climb threshold.
 
 **Integration Options:**
+
 - Free: OpenTopography SRTM (requires signup)
 - Freemium: Mapbox Tilequery API (includes elevation)
 
 **Sketch:**
+
 ```typescript
-async function getCorrectedElevation(lat: number, lon: number): Promise<number> {
+async function getCorrectedElevation(
+  lat: number,
+  lon: number,
+): Promise<number> {
   const response = await fetch(
     `https://api.mapbox.com/v4/mapbox.mapbox-terrain-v2/tilequery/${lon},${lat}.json?access_token=${MAPBOX_TOKEN}`,
   );
@@ -549,6 +609,7 @@ function calculateElevationGain(elevations: number[]): number {
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Elevation API integration working
 - [ ] 3m climb threshold filtering noise
 - [ ] Elevation gain/loss displayed on session detail
@@ -557,13 +618,16 @@ function calculateElevationGain(elevations: number[]): number {
 ---
 
 #### 3.4 Map Matching (Road Snapping)
+
 **File:** `services/map/matching.ts` (new)  
 **Change:** Snap polyline to known roads using Mapbox or OpenStreetMap.
 
 **Dependencies:**
+
 - Mapbox Map Matching API or OSM GraphHopper
 
 **Sketch:**
+
 ```typescript
 async function snapToRoads(
   polylineCoordinates: Array<{ latitude: number; longitude: number }>,
@@ -580,14 +644,17 @@ async function snapToRoads(
   );
 
   const data = await response.json();
-  return data.matchings[0].geometry.coordinates.map(([lon, lat]: [number, number]) => ({
-    latitude: lat,
-    longitude: lon,
-  }));
+  return data.matchings[0].geometry.coordinates.map(
+    ([lon, lat]: [number, number]) => ({
+      latitude: lat,
+      longitude: lon,
+    }),
+  );
 }
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Polyline snaps to known streets/paths
 - [ ] Works in urban, suburban, and trail environments
 - [ ] API key secured (no hardcoding)
@@ -613,7 +680,7 @@ Week 2 (Phase 2):
 Week 3-4 (Phase 3):
   Week 3: 3.1 Kalman filter (GPS + IMU)
   Week 4: 3.2 Dead reckoning, 3.3 DEM elevation, 3.4 Map matching
-  
+
 Dependency Graph:
   - Phase 1 → Phase 2 (no hard deps, Phase 2 benefits from Phase 1 baseline)
   - Phase 2 → Phase 3 (no hard deps, but Phase 3 assumes Phase 2 foundation)
@@ -627,6 +694,7 @@ Dependency Graph:
 ## Testing Strategy
 
 ### Unit Tests
+
 ```
 ✅ accuracy filtering logic
 ✅ trajectory interpolation
@@ -637,6 +705,7 @@ Dependency Graph:
 ```
 
 ### Integration Tests
+
 ```
 ✅ Live tracking with filtered GPS
 ✅ Session save with simplified polyline
@@ -645,6 +714,7 @@ Dependency Graph:
 ```
 
 ### User Acceptance Tests
+
 ```
 ✅ Pace smoothing feels responsive (not lagging)
 ✅ Distance matches Strava/Nike Run Club on test routes
@@ -658,17 +728,20 @@ Dependency Graph:
 ## Rollout Strategy
 
 ### Phase 1: Ship to Beta (Internal)
+
 - Tiered accuracy filtering
 - EMA tuning
 - Pace rounding
 - Test on 5+ test routes before public release
 
 ### Phase 2: Public Release (v1.1)
+
 - Douglas-Peucker + gradient rendering
 - GPS pre-start warning
 - Vincenty formula
 
 ### Phase 3: Advanced (v1.2+)
+
 - Kalman filter
 - Dead reckoning
 - DEM elevation correction
@@ -678,31 +751,31 @@ Dependency Graph:
 
 ## Files to Create/Modify
 
-| File | Action | Impact |
-|------|--------|--------|
-| `stores/trackingStore.ts` | Modify | Core GPS filtering logic |
-| `utils/formatting.ts` | Modify | Pace rounding |
-| `utils/gps-utils.ts` | Create | Douglas-Peucker, Vincenty, helpers |
-| `services/gps/kalman-filter.ts` | Create | Sensor fusion (P3) |
-| `services/gps/dead-reckoning.ts` | Create | Signal loss handling (P3) |
-| `services/elevation/dem.ts` | Create | Elevation correction (P3) |
-| `services/map/matching.ts` | Create | Road snapping (P3) |
-| `app/(tabs)/index.tsx` | Modify | GPS pre-start dialog |
-| `app/session/[id].tsx` | Modify | Polyline gradient rendering |
-| `constants/gps-config.ts` | Create | Centralized GPS constants |
+| File                             | Action | Impact                             |
+| -------------------------------- | ------ | ---------------------------------- |
+| `stores/trackingStore.ts`        | Modify | Core GPS filtering logic           |
+| `utils/formatting.ts`            | Modify | Pace rounding                      |
+| `utils/gps-utils.ts`             | Create | Douglas-Peucker, Vincenty, helpers |
+| `services/gps/kalman-filter.ts`  | Create | Sensor fusion (P3)                 |
+| `services/gps/dead-reckoning.ts` | Create | Signal loss handling (P3)          |
+| `services/elevation/dem.ts`      | Create | Elevation correction (P3)          |
+| `services/map/matching.ts`       | Create | Road snapping (P3)                 |
+| `app/(tabs)/index.tsx`           | Modify | GPS pre-start dialog               |
+| `app/session/[id].tsx`           | Modify | Polyline gradient rendering        |
+| `constants/gps-config.ts`        | Create | Centralized GPS constants          |
 
 ---
 
 ## Success Metrics
 
-| Metric | Target | Method |
-|--------|--------|--------|
-| Distance accuracy vs. Strava | ±2% on 5km route | Comparison test |
-| Pace display smoothness | No jumps > 30s | Subjective testing |
-| Polyline point reduction | 40-60% fewer points | Point count delta |
-| GPS signal recovery time | < 5 seconds | Tunnel test |
-| Session load performance | < 2s (was 3s) | Profiling before/after |
-| User trust score (survey) | 8/10 → 9/10 | Post-release survey |
+| Metric                       | Target              | Method                 |
+| ---------------------------- | ------------------- | ---------------------- |
+| Distance accuracy vs. Strava | ±2% on 5km route    | Comparison test        |
+| Pace display smoothness      | No jumps > 30s      | Subjective testing     |
+| Polyline point reduction     | 40-60% fewer points | Point count delta      |
+| GPS signal recovery time     | < 5 seconds         | Tunnel test            |
+| Session load performance     | < 2s (was 3s)       | Profiling before/after |
+| User trust score (survey)    | 8/10 → 9/10         | Post-release survey    |
 
 ---
 

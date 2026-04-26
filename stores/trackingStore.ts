@@ -5,6 +5,7 @@ import type {
     TrackingStatus,
 } from "@/types/tracking";
 import type { GpsPoint } from "@/types/workout";
+import { vincenty } from "@/utils/gps-utils";
 import * as Location from "expo-location";
 import { create } from "zustand";
 
@@ -61,6 +62,20 @@ function haversine(
   return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
 }
 
+// Phase 2.3: Use Vincenty for high precision on long distances (>= 5km total)
+function calculateSegmentDistance(
+  prev: GpsPoint,
+  current: GpsPoint,
+  cumulativeDistanceKm: number,
+): number {
+  // Use Vincenty for better accuracy on long runs (>= 5km cumulative)
+  if (cumulativeDistanceKm >= 5) {
+    return vincenty(prev, current);
+  }
+  // Use Haversine for short distances (faster, good enough accuracy)
+  return haversine(prev, current);
+}
+
 // Phase 1: Tiered accuracy filtering (P1.1)
 function filterByAccuracy(point: GpsPoint): boolean {
   if (point.accuracy == null) return true; // Accept if not reported
@@ -72,7 +87,10 @@ function filterByAccuracy(point: GpsPoint): boolean {
   return true; // Accept < 20m with full trust
 }
 
-function smoothGpsPoint(next: GpsPoint, previousPoints: readonly GpsPoint[]): GpsPoint {
+function smoothGpsPoint(
+  next: GpsPoint,
+  previousPoints: readonly GpsPoint[],
+): GpsPoint {
   if (previousPoints.length < 2) {
     return next;
   }
@@ -111,7 +129,10 @@ function interpolateFromTrajectory(
   };
 }
 
-function normalizeSpeedMps(rawSpeedMps: number | null, fallbackSpeedMps: number): number {
+function normalizeSpeedMps(
+  rawSpeedMps: number | null,
+  fallbackSpeedMps: number,
+): number {
   if (
     rawSpeedMps != null &&
     rawSpeedMps > 0 &&
@@ -123,12 +144,18 @@ function normalizeSpeedMps(rawSpeedMps: number | null, fallbackSpeedMps: number)
   return fallbackSpeedMps;
 }
 
-function smoothSpeedMps(previousSpeedMps: number, currentSpeedMps: number): number {
+function smoothSpeedMps(
+  previousSpeedMps: number,
+  currentSpeedMps: number,
+): number {
   if (previousSpeedMps <= 0) {
     return currentSpeedMps;
   }
 
-  return previousSpeedMps + (currentSpeedMps - previousSpeedMps) * SPEED_SMOOTHING_FACTOR;
+  return (
+    previousSpeedMps +
+    (currentSpeedMps - previousSpeedMps) * SPEED_SMOOTHING_FACTOR
+  );
 }
 
 function getPausedMs(run: ActiveRun, nowMs: number): number {
@@ -154,7 +181,7 @@ function computeMetrics(
   // Phase 1: Pace display rounding (P1.3) — round to 30s for consistent live display
   const currentPaceRounded =
     currentSpeedMps > 0
-      ? Math.round((1000 / (currentSpeedMps * 60)) / 30) * 30
+      ? Math.round(1000 / (currentSpeedMps * 60) / 30) * 30
       : 0;
 
   return {
@@ -207,7 +234,10 @@ async function startTrackingWatch(): Promise<boolean> {
             return state;
           }
 
-          const filteredPoint = smoothGpsPoint(point, state.activeRun.gpsPoints);
+          const filteredPoint = smoothGpsPoint(
+            point,
+            state.activeRun.gpsPoints,
+          );
 
           const prev = state.activeRun.gpsPoints.at(-1);
           let distanceKm = state.metrics.distance;
@@ -215,8 +245,14 @@ async function startTrackingWatch(): Promise<boolean> {
           let finalPoint = filteredPoint;
 
           if (prev) {
-            const dKm = haversine(prev, filteredPoint);
-            const timeDeltaS = (filteredPoint.timestamp - prev.timestamp) / 1000;
+            // Phase 2.3: Use Vincenty for distances >= 5km, Haversine for shorter
+            const dKm = calculateSegmentDistance(
+              prev,
+              filteredPoint,
+              distanceKm,
+            );
+            const timeDeltaS =
+              (filteredPoint.timestamp - prev.timestamp) / 1000;
             const speedKph = timeDeltaS > 0 ? (dKm / timeDeltaS) * 3600 : 0;
 
             // Phase 1: Trajectory interpolation for GPS jumps (P1.4)
@@ -227,8 +263,13 @@ async function startTrackingWatch(): Promise<boolean> {
                   state.activeRun.gpsPoints,
                   filteredPoint,
                 );
-                const dKmInterp = haversine(prev, finalPoint);
-                const speedKphInterp = timeDeltaS > 0 ? (dKmInterp / timeDeltaS) * 3600 : 0;
+                const dKmInterp = calculateSegmentDistance(
+                  prev,
+                  finalPoint,
+                  distanceKm,
+                );
+                const speedKphInterp =
+                  timeDeltaS > 0 ? (dKmInterp / timeDeltaS) * 3600 : 0;
                 if (speedKphInterp > MAX_RUNNING_SPEED_KPH || timeDeltaS <= 0) {
                   return state; // Still implausible, discard
                 }
@@ -247,8 +288,14 @@ async function startTrackingWatch(): Promise<boolean> {
             } else if (timeDeltaS <= 0 || dKm < MIN_DISTANCE_SAMPLE_KM) {
               return state;
             } else {
-              const instantSpeedMps = normalizeSpeedMps(point.speed, speedKph / 3.6);
-              speedMps = smoothSpeedMps(state.metrics.currentSpeed, instantSpeedMps);
+              const instantSpeedMps = normalizeSpeedMps(
+                point.speed,
+                speedKph / 3.6,
+              );
+              speedMps = smoothSpeedMps(
+                state.metrics.currentSpeed,
+                instantSpeedMps,
+              );
               distanceKm += dKm;
             }
           } else {

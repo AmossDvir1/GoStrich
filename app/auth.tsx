@@ -122,7 +122,7 @@ export default function AuthScreen() {
       {/* Branding */}
       <YStack alignItems="center" gap="$2">
         <SizableText
-          size={10}
+          fontSize={25}
           fontWeight="900"
           color={c.primary}
           style={{ letterSpacing: -1 }}
@@ -130,7 +130,7 @@ export default function AuthScreen() {
           GoStrich
         </SizableText>
         <SizableText size="$5" color={c.textSecondary}>
-          Track every step
+          Your friendly ostrich running app.
         </SizableText>
       </YStack>
 
