@@ -48,17 +48,25 @@ export function formatDistance(
 
 /**
  * Format pace in seconds per km to min:sec/km or min:sec/mi string.
+ * @param secondsPerKm Pace in seconds per kilometer
+ * @param unit Unit system (metric or imperial)
+ * @param roundTo Optional: round to nearest N seconds (e.g., 30 = "5:30/km", "6:00/km")
  */
 export function formatPace(
   secondsPerKm: number,
   unit: UnitSystem = "metric",
+  roundTo: number = 0,
 ): string {
+  // Phase 1: Pace display rounding (P1.3) — round to nearest 30s for cognitive ease
   let pace = secondsPerKm;
+  if (roundTo > 0) {
+    pace = Math.round(pace / roundTo) * roundTo;
+  }
   if (unit === "imperial") {
-    pace = secondsPerKm * KM_PER_MILE;
+    pace = pace * KM_PER_MILE;
   }
   const mins = Math.floor(pace / 60);
-  const secs = Math.floor(pace % 60);
+  const secs = Math.round(pace % 60);
   const suffix = unit === "imperial" ? "/mi" : "/km";
   return `${mins}:${secs.toString().padStart(2, "0")}${suffix}`;
 }

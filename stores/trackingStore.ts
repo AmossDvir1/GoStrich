@@ -34,6 +34,18 @@ const initialMetrics: TrackingMetrics = {
 let timerRef: ReturnType<typeof setInterval> | null = null;
 let gpsWatchRef: Location.LocationSubscription | null = null;
 
+// Phase 1: Tiered accuracy thresholding (P1.1)
+const ACCURACY_THRESHOLDS = {
+  DISCARD_M: 50, // Discard points > 50m accuracy
+  WEIGHT_LOW_MIN: 20, // Full trust below 20m
+  WEIGHT_LOW_MAX: 50, // Reduced trust 20-50m (70% acceptance)
+};
+
+const MAX_RUNNING_SPEED_KPH = 30;
+const MIN_DISTANCE_SAMPLE_KM = 0.002;
+// Phase 1: Optimized EMA smoothing factor (P1.2) — reduced from 0.25 to 0.15 for better responsiveness
+const SPEED_SMOOTHING_FACTOR = 0.15;
+
 function haversine(
   a: { latitude: number; longitude: number },
   b: { latitude: number; longitude: number },
@@ -47,6 +59,76 @@ function haversine(
       Math.cos((b.latitude * Math.PI) / 180) *
       Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+}
+
+// Phase 1: Tiered accuracy filtering (P1.1)
+function filterByAccuracy(point: GpsPoint): boolean {
+  if (point.accuracy == null) return true; // Accept if not reported
+  if (point.accuracy > ACCURACY_THRESHOLDS.DISCARD_M) return false; // Discard > 50m
+  if (point.accuracy > ACCURACY_THRESHOLDS.WEIGHT_LOW_MAX) {
+    // Degraded accuracy 20-50m: 70% acceptance rate (stochastic filtering)
+    return Math.random() > 0.3;
+  }
+  return true; // Accept < 20m with full trust
+}
+
+function smoothGpsPoint(next: GpsPoint, previousPoints: readonly GpsPoint[]): GpsPoint {
+  if (previousPoints.length < 2) {
+    return next;
+  }
+
+  const prev1 = previousPoints[previousPoints.length - 2];
+  const prev2 = previousPoints[previousPoints.length - 1];
+
+  return {
+    ...next,
+    latitude: (prev1.latitude + prev2.latitude + next.latitude) / 3,
+    longitude: (prev1.longitude + prev2.longitude + next.longitude) / 3,
+  };
+}
+
+// Phase 1: Trajectory interpolation for GPS jumps (P1.4)
+function interpolateFromTrajectory(
+  lastThreePoints: readonly GpsPoint[],
+  implausiblePoint: GpsPoint,
+): GpsPoint {
+  // Use weighted average of last 3 points + expected vector
+  if (lastThreePoints.length < 2) {
+    return lastThreePoints[lastThreePoints.length - 1];
+  }
+
+  const p1 = lastThreePoints[lastThreePoints.length - 2];
+  const p2 = lastThreePoints[lastThreePoints.length - 1];
+
+  // Project forward along last vector (50% of step)
+  const dLat = (p2.latitude - p1.latitude) * 0.5;
+  const dLon = (p2.longitude - p1.longitude) * 0.5;
+
+  return {
+    ...implausiblePoint,
+    latitude: p2.latitude + dLat,
+    longitude: p2.longitude + dLon,
+  };
+}
+
+function normalizeSpeedMps(rawSpeedMps: number | null, fallbackSpeedMps: number): number {
+  if (
+    rawSpeedMps != null &&
+    rawSpeedMps > 0 &&
+    rawSpeedMps < MAX_RUNNING_SPEED_KPH / 3.6
+  ) {
+    return rawSpeedMps;
+  }
+
+  return fallbackSpeedMps;
+}
+
+function smoothSpeedMps(previousSpeedMps: number, currentSpeedMps: number): number {
+  if (previousSpeedMps <= 0) {
+    return currentSpeedMps;
+  }
+
+  return previousSpeedMps + (currentSpeedMps - previousSpeedMps) * SPEED_SMOOTHING_FACTOR;
 }
 
 function getPausedMs(run: ActiveRun, nowMs: number): number {
@@ -69,13 +151,17 @@ function computeMetrics(
 ): TrackingMetrics {
   const duration = getElapsedSeconds(run, nowMs);
   const avgPace = distanceKm > 0 ? duration / distanceKm : 0;
-  const currentPace = currentSpeedMps > 0 ? 1000 / (currentSpeedMps * 60) : 0;
+  // Phase 1: Pace display rounding (P1.3) — round to 30s for consistent live display
+  const currentPaceRounded =
+    currentSpeedMps > 0
+      ? Math.round((1000 / (currentSpeedMps * 60)) / 30) * 30
+      : 0;
 
   return {
     distance: distanceKm,
     duration,
     avgPace,
-    currentPace,
+    currentPace: currentPaceRounded,
     currentSpeed: currentSpeedMps,
   };
 }
@@ -116,34 +202,68 @@ async function startTrackingWatch(): Promise<boolean> {
             return state;
           }
 
+          // Phase 1: Tiered accuracy filtering (P1.1)
+          if (!filterByAccuracy(point)) {
+            return state;
+          }
+
+          const filteredPoint = smoothGpsPoint(point, state.activeRun.gpsPoints);
+
           const prev = state.activeRun.gpsPoints.at(-1);
           let distanceKm = state.metrics.distance;
-          let speedMps = point.speed ?? 0;
+          let speedMps = 0;
+          let finalPoint = filteredPoint;
 
           if (prev) {
-            const dKm = haversine(prev, point);
-            const timeDeltaS = (point.timestamp - prev.timestamp) / 1000;
+            const dKm = haversine(prev, filteredPoint);
+            const timeDeltaS = (filteredPoint.timestamp - prev.timestamp) / 1000;
             const speedKph = timeDeltaS > 0 ? (dKm / timeDeltaS) * 3600 : 0;
 
-            if (dKm < 0.002 || speedKph > 50) {
+            // Phase 1: Trajectory interpolation for GPS jumps (P1.4)
+            // If speed threshold exceeded, interpolate instead of discarding
+            if (speedKph > MAX_RUNNING_SPEED_KPH) {
+              if (state.activeRun.gpsPoints.length >= 2) {
+                finalPoint = interpolateFromTrajectory(
+                  state.activeRun.gpsPoints,
+                  filteredPoint,
+                );
+                const dKmInterp = haversine(prev, finalPoint);
+                const speedKphInterp = timeDeltaS > 0 ? (dKmInterp / timeDeltaS) * 3600 : 0;
+                if (speedKphInterp > MAX_RUNNING_SPEED_KPH || timeDeltaS <= 0) {
+                  return state; // Still implausible, discard
+                }
+                const instantSpeedMps = normalizeSpeedMps(
+                  point.speed,
+                  speedKphInterp / 3.6,
+                );
+                speedMps = smoothSpeedMps(
+                  state.metrics.currentSpeed,
+                  instantSpeedMps,
+                );
+                distanceKm += dKmInterp;
+              } else {
+                return state; // Not enough history to interpolate
+              }
+            } else if (timeDeltaS <= 0 || dKm < MIN_DISTANCE_SAMPLE_KM) {
               return state;
+            } else {
+              const instantSpeedMps = normalizeSpeedMps(point.speed, speedKph / 3.6);
+              speedMps = smoothSpeedMps(state.metrics.currentSpeed, instantSpeedMps);
+              distanceKm += dKm;
             }
-
-            if (speedMps <= 0) {
-              speedMps = speedKph / 3.6;
-            }
-            distanceKm += dKm;
+          } else {
+            speedMps = normalizeSpeedMps(point.speed, 0);
           }
 
           return {
             activeRun: {
               ...state.activeRun,
-              gpsPoints: [...state.activeRun.gpsPoints, point],
+              gpsPoints: [...state.activeRun.gpsPoints, finalPoint],
               speedSeries: [
                 ...state.activeRun.speedSeries,
                 {
-                  t: point.timestamp - state.activeRun.startTime,
-                  speedMps: point.speed,
+                  t: finalPoint.timestamp - state.activeRun.startTime,
+                  speedMps,
                 },
               ],
             },
@@ -345,6 +465,12 @@ export const useTrackingStore = create<TrackingState>((set) => ({
       0,
     );
 
+    const maxSmoothedSpeed = normalizedRun.speedSeries.reduce(
+      (max, point) =>
+        point.speedMps != null ? Math.max(max, point.speedMps) : max,
+      0,
+    );
+
     const id = `${normalizedRun.startTime}`;
     useWorkoutStore.getState().addWorkout({
       id,
@@ -357,7 +483,7 @@ export const useTrackingStore = create<TrackingState>((set) => ({
       duration,
       distance: distanceM,
       avgPace,
-      maxSpeed,
+      maxSpeed: Math.max(maxSpeed, maxSmoothedSpeed),
       gpsPoints: normalizedRun.gpsPoints,
       speedSeries: normalizedRun.speedSeries,
       pauseIntervals,
