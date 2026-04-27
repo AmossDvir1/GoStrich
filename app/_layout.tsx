@@ -1,15 +1,19 @@
 import { ActiveRunIndicator } from "@/components/active-run-indicator";
 import { GlobalTopNav } from "@/components/global-top-nav";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { useBackup } from "@/hooks/use-backup";
+import { useBackupStore } from "@/stores/backupStore";
+import { useWorkoutStore } from "@/stores/workoutStore";
 import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
+    DarkTheme,
+    DefaultTheme,
+    ThemeProvider,
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import { Redirect, Stack, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import { TamaguiProvider, YStack } from "tamagui";
@@ -37,6 +41,11 @@ export default function RootLayout() {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const isHydrating = useAuthStore((s) => s.isHydrating);
   const hydrateProfile = useProfileStore((s) => s.hydrate);
+  const workouts = useWorkoutStore((s) => s.workouts);
+  const hydrateBackup = useBackupStore((s) => s.hydrate);
+  const { checkBackup, restore } = useBackup();
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const restoreChecked = useRef(false);
 
   const showGlobalNav =
     isLoggedIn &&
@@ -72,7 +81,20 @@ export default function RootLayout() {
   useEffect(() => {
     void hydrate();
     void hydrateProfile();
-  }, [hydrate, hydrateProfile]);
+    void hydrateBackup();
+  }, [hydrate, hydrateProfile, hydrateBackup]);
+
+  useEffect(() => {
+    if (!isLoggedIn || isHydrating || restoreChecked.current) return;
+    if (workouts.length > 0) {
+      restoreChecked.current = true;
+      return;
+    }
+    restoreChecked.current = true;
+    void checkBackup().then((info) => {
+      if (info.exists && info.count > 0) setShowRestoreModal(true);
+    });
+  }, [isLoggedIn, isHydrating, workouts.length, checkBackup]);
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
@@ -130,6 +152,18 @@ export default function RootLayout() {
             {showGlobalNav && <GlobalTopNav />}
             {isLoggedIn && <ActiveRunIndicator />}
             {!isLoggedIn && <Redirect href="/auth" />}
+            <ConfirmModal
+              visible={showRestoreModal}
+              title="Restore Backup?"
+              message="A Google Drive backup was found. Restore your previous run history?"
+              confirmLabel="Restore"
+              onCancel={() => setShowRestoreModal(false)}
+              onConfirm={async () => {
+                setShowRestoreModal(false);
+                await restore();
+              }}
+              colors={c}
+            />
             <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
           </ThemeProvider>
         )}

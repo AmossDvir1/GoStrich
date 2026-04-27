@@ -1,3 +1,4 @@
+import { triggerSilentBackup } from "@/hooks/use-backup";
 import { useTrackingStore } from "@/stores/trackingStore";
 import { router } from "expo-router";
 import { useCallback, useMemo } from "react";
@@ -53,6 +54,7 @@ export function useRunSession(
   const handleEnd = useCallback(() => {
     const id = endRun();
     if (id) {
+      void triggerSilentBackup();
       router.push(`/session/${id}?isNew=1` as never);
     }
   }, [endRun]);

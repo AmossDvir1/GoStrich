@@ -7,6 +7,7 @@ interface WorkoutState {
   workouts: WorkoutSummary[];
 
   addWorkout: (workout: Workout) => void;
+  addWorkoutsBulk: (summaries: WorkoutSummary[]) => void;
   removeWorkout: (id: string) => void;
   getWorkout: (id: string) => WorkoutSummary | undefined;
   clearHistory: () => void;
@@ -22,6 +23,13 @@ export const useWorkoutStore = create<WorkoutState>()(
           const { gpsPoints: _, ...summary } = workout;
           return { workouts: [summary, ...state.workouts] };
         }),
+
+      addWorkoutsBulk: (summaries) =>
+        set((state) => ({
+          workouts: [...summaries, ...state.workouts].sort(
+            (a, b) => b.createdAt - a.createdAt,
+          ),
+        })),
 
       removeWorkout: (id) =>
         set((state) => ({

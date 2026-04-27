@@ -34,7 +34,8 @@ export default function AuthScreen() {
         // It is needed so Google can return a proper ID token.
         mod.GoogleSignin.configure({
           webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? "",
-          offlineAccess: false,
+          offlineAccess: true,
+          scopes: ["https://www.googleapis.com/auth/drive.appdata"],
         });
         setGoogleSigninModule(mod);
       } catch {

@@ -2,10 +2,12 @@ import { GLOBAL_NAV_CLEARANCE } from "@/components/global-top-nav";
 import { PhotoPickerModal } from "@/components/photo-picker-modal";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { Colors } from "@/constants/theme";
+import { useBackup } from "@/hooks/use-backup";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppStore } from "@/stores/appStore";
 import { useAuthStore } from "@/stores/authStore";
 import { useProfileStore } from "@/stores/profileStore";
+import { useWorkoutStore } from "@/stores/workoutStore";
 import {
   formatHeight,
   formatWeight,
@@ -27,6 +29,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  Share,
   Switch,
   TextInput,
 } from "react-native";
@@ -57,6 +60,7 @@ export default function ProfileScreen() {
 
   const { user, logout } = useAuthStore();
   const { profile, save } = useProfileStore();
+  const { workouts } = useWorkoutStore();
   const {
     darkMode,
     setDarkMode,
@@ -117,7 +121,52 @@ export default function ProfileScreen() {
     }
   };
 
+  const {
+    backup,
+    restore,
+    importFromFile,
+    status: backupStatus,
+    errorMessage: backupError,
+    lastBackupAt,
+  } = useBackup();
+  const [restoreConfirmVisible, setRestoreConfirmVisible] = useState(false);
+
+  const backupStatusLabel = (() => {
+    if (backupStatus === "uploading") return "Backing up...";
+    if (backupStatus === "error") return backupError ?? "Backup failed";
+    if (lastBackupAt) {
+      const mins = Math.round((Date.now() - lastBackupAt) / 60000);
+      if (mins < 2) return "Backed up just now";
+      if (mins < 60) return `Backed up ${mins}m ago`;
+      const hrs = Math.floor(mins / 60);
+      return `Backed up ${hrs}h ago`;
+    }
+    return "Not backed up yet";
+  })();
+
   const handleLogout = () => setLogoutModalVisible(true);
+
+  const handleExportWorkouts = async () => {
+    if (workouts.length === 0) {
+      Alert.alert("No Data", "You have no workouts to export.");
+      return;
+    }
+    try {
+      const payload = JSON.stringify(
+        {
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          count: workouts.length,
+          workouts,
+        },
+        null,
+        2,
+      );
+      await Share.share({ message: payload, title: "GoStrich Backup" });
+    } catch {
+      Alert.alert("Export Failed", "Could not open the share sheet.");
+    }
+  };
 
   // Derive initials for avatar
   const initials =
@@ -493,6 +542,143 @@ export default function ProfileScreen() {
               </Pressable>
             </YStack>
 
+            {/* DATA BACKUP */}
+            <SizableText
+              size="$2"
+              fontWeight="700"
+              marginTop="$4"
+              marginBottom="$1.5"
+              marginLeft="$1"
+              color={c.textSecondary}
+              style={{ letterSpacing: 1.2 }}
+            >
+              DATA BACKUP
+            </SizableText>
+            <YStack
+              borderRadius="$4"
+              borderWidth={1}
+              borderColor={c.border}
+              backgroundColor={c.surface}
+              overflow="hidden"
+            >
+              <Pressable
+                onPress={() => {
+                  if (backupStatus === "error" && backupError) {
+                    Alert.alert("Backup Error", backupError);
+                    return;
+                  }
+                  void backup();
+                }}
+                disabled={backupStatus === "uploading"}
+                accessibilityRole="button"
+                accessibilityLabel="Back up now"
+                style={{ paddingHorizontal: 16, paddingVertical: 16 }}
+              >
+                <XStack alignItems="center" justifyContent="space-between">
+                  <YStack>
+                    <SizableText
+                      size="$4"
+                      fontWeight="500"
+                      color={c.textPrimary}
+                    >
+                      Back Up Now
+                    </SizableText>
+                    <SizableText
+                      size="$3"
+                      marginTop="$0.5"
+                      color={
+                        backupStatus === "error" ? c.danger : c.textSecondary
+                      }
+                    >
+                      {backupStatusLabel}
+                    </SizableText>
+                  </YStack>
+                  <SizableText size="$6" color={c.primary}>
+                    {backupStatus === "uploading" ? "..." : ">"}
+                  </SizableText>
+                </XStack>
+              </Pressable>
+              <Divider color={c.border} />
+              <Pressable
+                onPress={() => setRestoreConfirmVisible(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Restore from backup"
+                style={{ paddingHorizontal: 16, paddingVertical: 16 }}
+              >
+                <XStack alignItems="center" justifyContent="space-between">
+                  <SizableText size="$4" fontWeight="500" color={c.textPrimary}>
+                    Restore from Backup
+                  </SizableText>
+                  <SizableText size="$6" color={c.primary}>
+                    {">"}
+                  </SizableText>
+                </XStack>
+              </Pressable>
+              <Divider color={c.border} />
+              <Pressable
+                onPress={() => {
+                  void importFromFile()
+                    .then((count) => {
+                      Alert.alert(
+                        "Import complete",
+                        count > 0
+                          ? `${count} session${count !== 1 ? "s" : ""} imported.`
+                          : "Nothing new to import.",
+                      );
+                      if (count > 0) void backup();
+                    })
+                    .catch((e: unknown) => {
+                      Alert.alert(
+                        "Import failed",
+                        e instanceof Error ? e.message : "Could not read file.",
+                      );
+                    });
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Import from JSON file"
+                style={{ paddingHorizontal: 16, paddingVertical: 16 }}
+              >
+                <XStack alignItems="center" justifyContent="space-between">
+                  <SizableText size="$4" fontWeight="500" color={c.textPrimary}>
+                    Import from File
+                  </SizableText>
+                  <SizableText size="$6" color={c.primary}>
+                    {">"}
+                  </SizableText>
+                </XStack>
+              </Pressable>
+              <Divider color={c.border} />
+              <Pressable
+                onPress={() => void handleExportWorkouts()}
+                accessibilityRole="button"
+                accessibilityLabel="Export workouts as JSON"
+                style={{ paddingHorizontal: 16, paddingVertical: 16 }}
+              >
+                <XStack alignItems="center" justifyContent="space-between">
+                  <YStack>
+                    <SizableText
+                      size="$4"
+                      fontWeight="500"
+                      color={c.textPrimary}
+                    >
+                      Export as JSON
+                    </SizableText>
+                    <SizableText
+                      size="$3"
+                      marginTop="$0.5"
+                      color={c.textSecondary}
+                    >
+                      {workouts.length} workout
+                      {workouts.length !== 1 ? "s" : ""}
+                    </SizableText>
+                  </YStack>
+                  <SizableText size="$6" color={c.primary}>
+                    {">"}
+                  </SizableText>
+                </XStack>
+              </Pressable>
+            </YStack>
+
             {/* Log out */}
             <Pressable
               onPress={handleLogout}
@@ -551,6 +737,24 @@ export default function ProfileScreen() {
               ]
             : []),
         ]}
+      />
+      <ConfirmModal
+        visible={restoreConfirmVisible}
+        title="Restore Backup?"
+        message="This will merge your Google Drive backup into your current history. Existing sessions will not be deleted."
+        confirmLabel="Restore"
+        onCancel={() => setRestoreConfirmVisible(false)}
+        onConfirm={async () => {
+          setRestoreConfirmVisible(false);
+          const count = await restore();
+          Alert.alert(
+            "Restore complete",
+            count > 0
+              ? `${count} session${count !== 1 ? "s" : ""} restored.`
+              : "Nothing new to restore.",
+          );
+        }}
+        colors={c}
       />
       <ConfirmModal
         visible={logoutModalVisible}
