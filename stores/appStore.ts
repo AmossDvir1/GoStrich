@@ -12,12 +12,14 @@ interface AppState {
   darkMode: boolean;
   countdownEnabled: boolean;
   themeVariant: ThemeVariant;
+  autoBackup: boolean;
 
   setUnitSystem: (system: UnitSystem) => void;
   setMapStyle: (style: MapStyle) => void;
   setDarkMode: (enabled: boolean) => void;
   setCountdownEnabled: (enabled: boolean) => void;
   setThemeVariant: (variant: ThemeVariant) => void;
+  setAutoBackup: (enabled: boolean) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -28,12 +30,14 @@ export const useAppStore = create<AppState>()(
       darkMode: false,
       countdownEnabled: true,
       themeVariant: "ostrich",
+      autoBackup: true,
 
       setUnitSystem: (unitSystem) => set({ unitSystem }),
       setMapStyle: (mapStyle) => set({ mapStyle }),
       setDarkMode: (darkMode) => set({ darkMode }),
       setCountdownEnabled: (countdownEnabled) => set({ countdownEnabled }),
       setThemeVariant: (themeVariant) => set({ themeVariant }),
+      setAutoBackup: (autoBackup) => set({ autoBackup }),
     }),
     {
       name: "gostrich-app",

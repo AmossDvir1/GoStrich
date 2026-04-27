@@ -1,5 +1,6 @@
 import * as BackupService from "@/services/backup";
 import type { BackupFile, BackupInfo } from "@/services/backup/types";
+import { useAppStore } from "@/stores/appStore";
 import { useAuthStore } from "@/stores/authStore";
 import { useBackupStore } from "@/stores/backupStore";
 import { useWorkoutStore } from "@/stores/workoutStore";
@@ -12,6 +13,7 @@ import { File } from "expo-file-system/next";
  * (e.g. from use-run-session after saving a workout).
  */
 export async function triggerSilentBackup(): Promise<void> {
+  if (!useAppStore.getState().autoBackup) return;
   const { status, setStatus, setLastBackupAt, setPendingBackup } =
     useBackupStore.getState();
   if (status === "uploading") return;

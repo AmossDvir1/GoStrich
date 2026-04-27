@@ -16,7 +16,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
-import { TamaguiProvider, YStack } from "tamagui";
+import { TamaguiProvider, Theme, YStack } from "tamagui";
 
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -114,10 +114,10 @@ export default function RootLayout() {
 
   return (
     <TamaguiProvider
-      key={tamaguiThemeName}
       config={appTamaguiConfig}
       defaultTheme={tamaguiThemeName}
     >
+      <Theme name={tamaguiThemeName}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         {isHydrating ? (
           <YStack flex={1} backgroundColor={c.background} />
@@ -145,6 +145,10 @@ export default function RootLayout() {
                 options={{ presentation: "modal", headerShown: false }}
               />
               <Stack.Screen
+                name="backup"
+                options={{ presentation: "modal", headerShown: false }}
+              />
+              <Stack.Screen
                 name="modal"
                 options={{ presentation: "modal", title: "Modal" }}
               />
@@ -168,6 +172,7 @@ export default function RootLayout() {
           </ThemeProvider>
         )}
       </GestureHandlerRootView>
+      </Theme>
     </TamaguiProvider>
   );
 }

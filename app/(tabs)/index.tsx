@@ -80,6 +80,7 @@ export default function HomeScreen() {
   const [gpsDegradedAccuracy, setGpsDegradedAccuracy] = useState<number | null>(
     null,
   );
+  const [thumbResetSignal, setThumbResetSignal] = useState(0);
 
   const handleCountdownFinish = useCallback(() => {
     setShowCountdown(false);
@@ -416,6 +417,7 @@ export default function HomeScreen() {
               locationReady={!!currentLocation}
               countdownEnabled={countdownEnabled}
               onToggleCountdown={handleToggleCountdown}
+              resetSignal={thumbResetSignal}
               onStart={handleStartPress}
               onPause={handlePause}
               onResume={() => void handleResume()}
@@ -438,6 +440,7 @@ export default function HomeScreen() {
             onCancel={() => {
               setShowGpsWarning(false);
               setGpsDegradedAccuracy(null);
+              setThumbResetSignal((s) => s + 1);
             }}
             onConfirm={() => {
               setShowGpsWarning(false);

@@ -86,6 +86,8 @@ interface RunDrawerProps {
   onPause: () => void;
   onResume: () => void;
   onEnd: () => void;
+  /** Increment to force the slide-to-start thumb back to resting position */
+  resetSignal?: number;
 }
 
 // ─── component ────────────────────────────────────────────────────────────────
@@ -102,6 +104,7 @@ export function RunDrawer({
   onPause,
   onResume,
   onEnd,
+  resetSignal,
 }: RunDrawerProps) {
   const scheme = useColorScheme();
   const c = Colors[scheme];
@@ -127,6 +130,12 @@ export function RunDrawer({
       thumbX.value = withSpring(0, SPRING);
     }
   }, [runState]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Spring thumb back to 0 when parent signals a start was aborted
+  useEffect(() => {
+    if (resetSignal === undefined || resetSignal === 0) return;
+    thumbX.value = withSpring(0, SPRING);
+  }, [resetSignal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onLayout = useCallback((e: LayoutChangeEvent) => {
     const w = e.nativeEvent.layout.width;

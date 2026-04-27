@@ -1,12 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Android Auto Backup rules (API 23+).
-  - Include AsyncStorage (RKStorage) so workout history survives reinstalls via Google Drive.
-  - Exclude SecureStore (sharedprefs/RN.google.users.tokens) to avoid backing up auth tokens.
+  Only backs up AsyncStorage (RKStorage) so workout history survives reinstalls.
+  SecureStore auth tokens are excluded implicitly — only explicitly included paths are backed up.
 -->
 <full-backup-content>
-  <!-- Include AsyncStorage database -->
   <include domain="database" path="RKStorage" />
-  <!-- Exclude SecureStore auth data -->
-  <exclude domain="sharedpref" path="RN.google.users.tokens" />
 </full-backup-content>

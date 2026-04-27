@@ -1,4 +1,4 @@
-import { SessionSpeedChart } from "@/components/session-speed-chart";
+﻿import { SessionSpeedChart } from "@/components/session-speed-chart";
 import { STORY_HEIGHT, STORY_WIDTH, StoryCard } from "@/components/story-card";
 import { BackButton } from "@/components/ui/back-button";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
@@ -14,12 +14,11 @@ import {
   formatPace,
   formatSpeed,
 } from "@/utils/formatting";
-import { douglasPeucker, generatePaceGradient } from "@/utils/gps-utils";
+import { douglasPeucker } from "@/utils/gps-utils";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useMemo, useRef, useState } from "react";
-import type { View } from "react-native";
-import { ActivityIndicator, Pressable, ScrollView } from "react-native";
+import React, { useRef, useState, useMemo } from "react";
+import { ActivityIndicator, Animated, Pressable, ScrollView, type View } from "react-native";
 import MapView, { Polyline, PROVIDER_DEFAULT } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Popover, SizableText, XStack, YStack } from "tamagui";
@@ -82,23 +81,21 @@ export default function SessionSummaryScreen() {
   const insets = useSafeAreaInsets();
   const [discardVisible, setDiscardVisible] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [mapExpanded, setMapExpanded] = useState(false);
+  const mapHeight = useRef(new Animated.Value(200)).current;
   const storyCardRef = useRef<View>(null);
 
-  // Phase 2.1 & 2.4: Memoize polyline simplification and pace gradient (must be before early return)
-  const { simplifiedCoords, region, segmentColors } = useMemo(() => {
+  // Phase 2.1: Memoize polyline simplification (must be before early return)
+  const { simplifiedCoords, region } = useMemo(() => {
     const coords = workout?.routeCoords ?? [];
     const simplified =
       coords.length > 10 ? douglasPeucker(coords, 0.00015) : coords;
     const mapRegion = routeRegion(simplified);
-    const colors = workout?.speedSeries
-      ? generatePaceGradient(workout.speedSeries)
-      : [];
     return {
       simplifiedCoords: simplified,
       region: mapRegion,
-      segmentColors: colors,
     };
-  }, [workout?.routeCoords, workout?.speedSeries]);
+  }, [workout?.routeCoords]);
 
   if (!workout) {
     return (
@@ -168,18 +165,12 @@ export default function SessionSummaryScreen() {
       <XStack
         paddingHorizontal="$5"
         paddingTop={insets.top + 14}
-        paddingBottom="$5"
+        paddingBottom="$4"
         alignItems="center"
         justifyContent="space-between"
-        backgroundColor={c.surface}
-        shadowColor={c.textPrimary}
-        shadowOpacity={0.08}
-        shadowRadius={8}
-        shadowOffset={{ width: 0, height: 3 }}
-        elevation={4}
       >
         <BackButton size={30} />
-        <SizableText size="$5" fontWeight="700" color={c.textPrimary}>
+        <SizableText size="$6" fontWeight="800" color={c.textPrimary}>
           Session Summary
         </SizableText>
         <Pressable
@@ -224,12 +215,17 @@ export default function SessionSummaryScreen() {
         </SizableText>
 
         {region != null && simplifiedCoords.length > 1 && (
-          <YStack
-            height={200}
-            borderRadius="$4"
-            overflow="hidden"
-            marginBottom="$5"
-            style={[MAP_SHADOW, { shadowColor: c.textPrimary }]}
+          <Animated.View
+            style={[
+              {
+                height: mapHeight,
+                borderRadius: 12,
+                overflow: "hidden",
+                marginBottom: 20,
+              },
+              MAP_SHADOW,
+              { shadowColor: c.textPrimary },
+            ]}
           >
             <MapView
               provider={PROVIDER_DEFAULT}
@@ -253,16 +249,41 @@ export default function SessionSummaryScreen() {
               }
             >
               <Polyline
-                // Phase 2.1: Use simplified coordinates for better performance
                 coordinates={simplifiedCoords}
-                // Phase 2.4: Use pace gradient colors if available
-                strokeColors={
-                  segmentColors.length > 0 ? segmentColors : [c.primary]
-                }
+                strokeColor={c.mapPath}
                 strokeWidth={4}
               />
             </MapView>
-          </YStack>
+            {/* Expand / collapse button */}
+            <Pressable
+              onPress={() => {
+                const next = !mapExpanded;
+                Animated.timing(mapHeight, {
+                  toValue: next ? 360 : 200,
+                  duration: 280,
+                  useNativeDriver: false,
+                }).start();
+                setMapExpanded(next);
+              }}
+              style={{
+                position: "absolute",
+                bottom: 10,
+                right: 10,
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                backgroundColor: "rgba(0,0,0,0.45)",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons
+                name={mapExpanded ? "contract-outline" : "expand-outline"}
+                size={18}
+                color="white"
+              />
+            </Pressable>
+          </Animated.View>
         )}
 
         <SessionSpeedChart
